@@ -8,7 +8,7 @@ if (!key) {
 }
 
 export const stripe = key
-  ? new Stripe(key, { apiVersion: "2024-09-30.acacia" })
+  ? new Stripe(key, { apiVersion: "2025-02-24.acacia" })
   : (null as unknown as Stripe);
 
 export function requireStripe(): Stripe {
