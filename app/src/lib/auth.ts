@@ -1,14 +1,9 @@
-/**
- * Auth.js v5 (NextAuth) configuration with Google OAuth + magic-link email.
- *
- * Wire-up:
- *   - Add the Drizzle adapter once tables for accounts/sessions are migrated.
- *   - Email provider sends magic links via Resend (no SMTP server needed).
- */
-
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -18,7 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
     Resend({
       apiKey: process.env.RESEND_API_KEY!,
-      from: process.env.EMAIL_FROM ?? "Cadence <hello@cadence.app>",
+      from: process.env.EMAIL_FROM ?? "Cadence <onboarding@resend.dev>",
     }),
   ],
   pages: {
@@ -27,8 +22,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: { strategy: "jwt" },
   callbacks: {
+    async signIn({ user }) {
+      if (!user.email) return false;
+      await db
+        .insert(users)
+        .values({
+          email: user.email,
+          name: user.name ?? null,
+          image: user.image ?? null,
+          emailVerified: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: users.email,
+          set: { name: user.name ?? null, image: user.image ?? null },
+        });
+      return true;
+    },
     async jwt({ token, user }) {
-      if (user) token.userId = user.id;
+      if (user?.email) {
+        const [dbUser] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, user.email))
+          .limit(1);
+        if (dbUser) token.userId = dbUser.id;
+      }
       return token;
     },
     async session({ session, token }) {
