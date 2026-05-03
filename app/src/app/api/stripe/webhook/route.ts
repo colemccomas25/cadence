@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireStripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { studios, invoices } from "@/db/schema";
+import { studios, invoices, parentContacts } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { sendEmail, receiptHtml } from "@/lib/email";
 
 function planFromPriceId(priceId: string): "solo" | "studio" | "free" {
   const { STRIPE_PRICE_SOLO_MONTHLY, STRIPE_PRICE_SOLO_YEARLY, STRIPE_PRICE_STUDIO_MONTHLY, STRIPE_PRICE_STUDIO_YEARLY } = process.env;
@@ -49,6 +50,38 @@ export async function POST(req: Request) {
           stripePaymentIntentId: session.payment_intent as string,
           stripeCheckoutSessionId: session.id,
         }).where(eq(invoices.id, meta.invoiceId));
+
+        // Send receipt to parent
+        const [inv] = await db.select().from(invoices).where(eq(invoices.id, meta.invoiceId)).limit(1);
+        if (inv) {
+          const [parent] = await db
+            .select({ email: parentContacts.email, name: parentContacts.name })
+            .from(parentContacts)
+            .where(eq(parentContacts.id, inv.parentId))
+            .limit(1);
+          const [studio] = await db
+            .select({ name: studios.name })
+            .from(studios)
+            .where(eq(studios.id, inv.studioId))
+            .limit(1);
+
+          if (parent?.email) {
+            const periodLabel = new Date(inv.periodStart).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            const amountFormatted = `$${(inv.totalCents / 100).toFixed(2)}`;
+            await sendEmail({
+              to: parent.email,
+              subject: `Payment received — ${studio?.name ?? "Your studio"} ${periodLabel}`,
+              html: receiptHtml({
+                parentName: parent.name,
+                studioName: studio?.name ?? "Your studio",
+                amountFormatted,
+                periodLabel,
+              }),
+              studioId: inv.studioId,
+              type: "receipt",
+            });
+          }
+        }
       }
       break;
     }

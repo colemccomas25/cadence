@@ -10,7 +10,7 @@ import { archiveStudent, unarchiveStudent } from "@/actions/students";
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; show?: string }>;
+  searchParams: Promise<{ q?: string; show?: string; imported?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -18,7 +18,7 @@ export default async function StudentsPage({
   const user = session.user as { id?: string; email?: string | null; name?: string | null };
   const studio = await getOrCreateStudio(user.id, user.email ?? undefined, user.name);
 
-  const { q, show } = await searchParams;
+  const { q, show, imported } = await searchParams;
   const showArchived = show === "archived";
 
   const rows = await db
@@ -37,13 +37,27 @@ export default async function StudentsPage({
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-slate-900">Students</h1>
-        <Link
-          href="/dashboard/students/new"
-          className="rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
-        >
-          + Add student
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/students/import"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Import CSV
+          </Link>
+          <Link
+            href="/dashboard/students/new"
+            className="rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+          >
+            + Add student
+          </Link>
+        </div>
       </div>
+
+      {imported && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 mb-4">
+          Successfully imported {imported} student{Number(imported) !== 1 ? "s" : ""}.
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-5">

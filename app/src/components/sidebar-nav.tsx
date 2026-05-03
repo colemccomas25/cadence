@@ -8,6 +8,7 @@ const NAV = [
   { href: "/dashboard/students", label: "Students", exact: false },
   { href: "/dashboard/calendar", label: "Calendar", exact: false },
   { href: "/dashboard/invoices", label: "Invoices", exact: false },
+  { href: "/dashboard/logs", label: "Email logs", exact: false },
   { href: "/dashboard/upgrade", label: "Upgrade", exact: false },
 ];
 

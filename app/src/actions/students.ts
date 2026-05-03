@@ -2,9 +2,10 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { students, studios } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { students, studios, parentContacts, studentParents } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getOrCreateStudioUncached } from "@/lib/studio";
 
 async function getStudio() {
@@ -64,6 +65,59 @@ export async function archiveStudent(studentId: string) {
     .where(eq(students.id, studentId));
 
   redirect("/dashboard/students");
+}
+
+export async function importStudentsCsv(formData: FormData) {
+  const studio = await getStudio();
+
+  const file = formData.get("file") as File | null;
+  if (!file) redirect("/dashboard/students/import");
+
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) redirect("/dashboard/students/import");
+
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const col = (row: string[], name: string) => {
+    const i = headers.indexOf(name);
+    return i >= 0 ? row[i]?.trim() ?? "" : "";
+  };
+
+  let imported = 0;
+  for (const line of lines.slice(1)) {
+    const row = line.split(",");
+    const name = col(row, "name");
+    if (!name) continue;
+
+    const instrument = col(row, "instrument") || null;
+    const durationMinutes = parseInt(col(row, "duration_minutes"), 10) || 30;
+    const rateCents = Math.round((parseFloat(col(row, "rate")) || 40) * 100);
+    const parentName = col(row, "parent_name") || null;
+    const parentEmail = col(row, "parent_email") || null;
+
+    const [student] = await db
+      .insert(students)
+      .values({ studioId: studio.id, name, instrument, defaultLessonMinutes: durationMinutes, defaultRateCents: rateCents })
+      .returning({ id: students.id });
+
+    if (parentEmail && student) {
+      const [parent] = await db
+        .insert(parentContacts)
+        .values({ studioId: studio.id, email: parentEmail, name: parentName })
+        .onConflictDoUpdate({ target: [parentContacts.studioId, parentContacts.email], set: { name: parentName } })
+        .returning({ id: parentContacts.id });
+
+      await db
+        .insert(studentParents)
+        .values({ studentId: student.id, parentId: parent.id, isPrimary: true })
+        .onConflictDoNothing();
+    }
+
+    imported++;
+  }
+
+  revalidatePath("/dashboard/students");
+  redirect(`/dashboard/students?imported=${imported}`);
 }
 
 export async function unarchiveStudent(studentId: string) {

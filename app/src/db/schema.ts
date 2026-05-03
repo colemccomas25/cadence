@@ -205,8 +205,27 @@ export const invoices = pgTable(
   }),
 );
 
+// --- email logs ---
+export const emailLogs = pgTable(
+  "email_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    studioId: uuid("studio_id").references(() => studios.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "lesson_reminder" | "invoice" | "receipt"
+    toEmail: text("to_email").notNull(),
+    subject: text("subject").notNull(),
+    status: text("status").notNull().default("sent"), // "sent" | "failed"
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    studioIdx: index("email_logs_studio_idx").on(t.studioId),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type Studio = typeof studios.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
+export type EmailLog = typeof emailLogs.$inferSelect;
