@@ -7,6 +7,8 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", exact: true },
   { href: "/dashboard/students", label: "Students", exact: false },
   { href: "/dashboard/calendar", label: "Calendar", exact: false },
+  { href: "/dashboard/invoices", label: "Invoices", exact: false },
+  { href: "/dashboard/upgrade", label: "Upgrade", exact: false },
 ];
 
 export function SidebarNav() {

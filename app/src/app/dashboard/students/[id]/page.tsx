@@ -2,10 +2,11 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
-import { students, lessonTemplates } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { students, lessonTemplates, studentParents, parentContacts } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import Link from "next/link";
 import { createTemplate, deactivateTemplate } from "@/actions/templates";
+import { addParent, removeParent } from "@/actions/parents";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -36,13 +37,15 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   const templates = await db
     .select()
     .from(lessonTemplates)
-    .where(
-      and(
-        eq(lessonTemplates.studentId, student.id),
-        eq(lessonTemplates.active, true),
-      ),
-    )
+    .where(and(eq(lessonTemplates.studentId, student.id), eq(lessonTemplates.active, true)))
     .orderBy(lessonTemplates.dayOfWeek);
+
+  const parents = await db
+    .select({ id: parentContacts.id, name: parentContacts.name, email: parentContacts.email, isPrimary: studentParents.isPrimary })
+    .from(studentParents)
+    .innerJoin(parentContacts, eq(parentContacts.id, studentParents.parentId))
+    .where(eq(studentParents.studentId, student.id))
+    .orderBy(studentParents.isPrimary);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -93,6 +96,55 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             ))}
           </div>
         )}
+      </section>
+
+      {/* Parent contacts */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+          Billing contacts
+        </h2>
+        {parents.length === 0 ? (
+          <p className="text-sm text-slate-400 mb-3">No billing contacts yet — add one to enable invoicing.</p>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {parents.map((p) => (
+              <div key={p.id} className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-slate-900">{p.name ?? p.email}</span>
+                  {p.name && <span className="text-slate-400 text-sm ml-2">{p.email}</span>}
+                  {p.isPrimary && <span className="ml-2 text-xs bg-brand-50 text-brand-600 px-1.5 py-0.5 rounded">Primary</span>}
+                </div>
+                <form action={removeParent.bind(null, student.id, p.id)}>
+                  <button type="submit" className="text-xs text-slate-400 hover:text-red-500">Remove</button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+        <form action={addParent} className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+          <input type="hidden" name="studentId" value={student.id} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Parent name</label>
+              <input name="name" placeholder="Sarah Chen"
+                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Email <span className="text-red-400">*</span></label>
+              <input name="email" type="email" required placeholder="sarah@example.com"
+                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input type="checkbox" name="isPrimary" defaultChecked className="rounded" />
+              Primary billing contact
+            </label>
+            <button type="submit" className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700">
+              Add contact
+            </button>
+          </div>
+        </form>
       </section>
 
       {/* Add recurring lesson form */}

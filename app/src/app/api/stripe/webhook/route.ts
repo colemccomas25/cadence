@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireStripe } from "@/lib/stripe";
+import { db } from "@/db";
+import { studios, invoices } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
-/**
- * Stripe webhook endpoint.
- *
- * Wire this up in the Stripe dashboard:
- *   - URL: https://your-domain/api/stripe/webhook
- *   - Events to send: checkout.session.completed, invoice.paid,
- *                     customer.subscription.updated, customer.subscription.deleted
- *
- * The signing secret goes in STRIPE_WEBHOOK_SECRET.
- */
+function planFromPriceId(priceId: string): "solo" | "studio" | "free" {
+  const { STRIPE_PRICE_SOLO_MONTHLY, STRIPE_PRICE_SOLO_YEARLY, STRIPE_PRICE_STUDIO_MONTHLY, STRIPE_PRICE_STUDIO_YEARLY } = process.env;
+  if (priceId === STRIPE_PRICE_SOLO_MONTHLY || priceId === STRIPE_PRICE_SOLO_YEARLY) return "solo";
+  if (priceId === STRIPE_PRICE_STUDIO_MONTHLY || priceId === STRIPE_PRICE_STUDIO_YEARLY) return "studio";
+  return "free";
+}
+
 export async function POST(req: Request) {
   const stripe = requireStripe();
   const sig = req.headers.get("stripe-signature");
@@ -19,11 +19,9 @@ export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) return new NextResponse("Webhook secret not configured", { status: 500 });
 
-  const payload = await req.text();
-
   let event;
   try {
-    event = stripe.webhooks.constructEvent(payload, sig, secret);
+    event = stripe.webhooks.constructEvent(await req.text(), sig, secret);
   } catch (err) {
     console.error("Stripe signature failed", err);
     return new NextResponse("Invalid signature", { status: 400 });
@@ -31,22 +29,44 @@ export async function POST(req: Request) {
 
   switch (event.type) {
     case "checkout.session.completed": {
-      // TODO: mark Cadence subscription as active for the studio,
-      //       OR mark a parent invoice as paid (depending on session metadata).
+      const session = event.data.object;
+      const meta = session.metadata ?? {};
+
+      if (meta.type === "subscription" && meta.studioId && session.subscription) {
+        const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+        const priceId = sub.items.data[0]?.price.id ?? "";
+        await db.update(studios).set({
+          plan: planFromPriceId(priceId),
+          stripeCustomerId: session.customer as string,
+          stripeSubscriptionId: session.subscription as string,
+        }).where(eq(studios.id, meta.studioId));
+      }
+
+      if (meta.type === "invoice" && meta.invoiceId) {
+        await db.update(invoices).set({
+          status: "paid",
+          paidAt: new Date(),
+          stripePaymentIntentId: session.payment_intent as string,
+          stripeCheckoutSessionId: session.id,
+        }).where(eq(invoices.id, meta.invoiceId));
+      }
       break;
     }
-    case "invoice.paid": {
-      // TODO: persist payment metadata onto our `invoices` row.
+
+    case "customer.subscription.updated": {
+      const sub = event.data.object;
+      const priceId = sub.items.data[0]?.price.id ?? "";
+      await db.update(studios).set({ plan: planFromPriceId(priceId) })
+        .where(eq(studios.stripeSubscriptionId, sub.id));
       break;
     }
-    case "customer.subscription.updated":
+
     case "customer.subscription.deleted": {
-      // TODO: update studios.plan accordingly.
+      const sub = event.data.object;
+      await db.update(studios).set({ plan: "free", stripeSubscriptionId: null })
+        .where(eq(studios.stripeSubscriptionId, sub.id));
       break;
     }
-    default:
-      // ignore other events for now
-      break;
   }
 
   return NextResponse.json({ received: true });
