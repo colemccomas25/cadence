@@ -6,7 +6,6 @@ import { invoices, parentContacts } from "@/db/schema";
 import { eq, and, gte, lt } from "drizzle-orm";
 import Link from "next/link";
 import { generateInvoices, voidInvoice } from "@/actions/invoices";
-import { CopyButton } from "@/components/copy-button";
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   draft:   { label: "Draft",   color: "bg-slate-100 text-slate-500" },
@@ -36,7 +35,7 @@ function currentYearMonth() {
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; paid?: string; exists?: string; empty?: string; noparents?: string; sent?: string; link?: string }>;
+  searchParams: Promise<{ month?: string; paid?: string; exists?: string; empty?: string; noparents?: string; sent?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -44,7 +43,7 @@ export default async function InvoicesPage({
   const user = session.user as { id?: string; email?: string | null; name?: string | null };
   const studio = await getOrCreateStudio(user.id, user.email ?? undefined, user.name);
 
-  const { month, paid, exists, empty, noparents, sent, link } = await searchParams;
+  const { month, paid, exists, empty, noparents, sent } = await searchParams;
   const ym = month ?? currentYearMonth();
   const [year, mon] = ym.split("-").map(Number);
 
@@ -93,19 +92,7 @@ export default async function InvoicesPage({
       {exists && <Banner color="amber">Invoices already exist for this month.</Banner>}
       {empty && <Banner color="amber">No held lessons found for this month.</Banner>}
       {noparents && <Banner color="amber">No students have parent contacts. Add parents on each student's page first.</Banner>}
-      {sent && link && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm mb-4">
-          <p className="font-medium text-brand-700 mb-2">Invoice sent — copy this link and share it with the parent:</p>
-          <div className="flex items-center gap-2">
-            <input
-              readOnly
-              value={decodeURIComponent(link)}
-              className="flex-1 rounded-md border border-brand-200 bg-white px-3 py-1.5 text-xs text-slate-700 font-mono focus:outline-none"
-            />
-            <CopyButton text={decodeURIComponent(link)} />
-          </div>
-        </div>
-      )}
+      {sent && <Banner color="green">Invoice emailed to the parent with a payment link.</Banner>}
 
       {/* Invoice list */}
       {rows.length === 0 ? (
