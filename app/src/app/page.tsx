@@ -99,7 +99,7 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
           {[
             ["Family billing", "One invoice for two siblings, no math."],
-            ["Recurring weekly slots", "Not "round robin" or "one-off booking.""],
+            ["Recurring weekly slots", `Not "round robin" or "one-off booking."`],
             ["24h parent reminders", "Automated — you never send the text yourself."],
             ["Stripe-powered payments", "Fast, no merchant account, works in 40+ countries."],
             ["Spreadsheet import", "Bring your roster over in 2 minutes."],
