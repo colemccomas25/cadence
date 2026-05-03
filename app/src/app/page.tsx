@@ -9,16 +9,10 @@ export default function HomePage() {
           Cadence<span className="text-brand-500">.</span>
         </div>
         <div className="flex items-center gap-6 text-sm">
-          <Link href="#pricing" className="text-slate-600 hover:text-slate-900">
-            Pricing
-          </Link>
-          <Link href="/login" className="text-slate-600 hover:text-slate-900">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-md bg-brand-500 px-3 py-1.5 text-white hover:bg-brand-600"
-          >
+          <Link href="#pricing" className="text-slate-600 hover:text-slate-900">Pricing</Link>
+          <Link href="#faq" className="text-slate-600 hover:text-slate-900">FAQ</Link>
+          <Link href="/login" className="text-slate-600 hover:text-slate-900">Log in</Link>
+          <Link href="/login" className="rounded-md bg-brand-500 px-3 py-1.5 text-white hover:bg-brand-600">
             Start free
           </Link>
         </div>
@@ -38,7 +32,7 @@ export default function HomePage() {
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
-            href="/signup"
+            href="/login"
             className="rounded-md bg-brand-500 px-5 py-3 text-white font-medium hover:bg-brand-600"
           >
             Start free — up to 5 students
@@ -92,9 +86,50 @@ export default function HomePage() {
           <Step
             n={3}
             title="Get paid on the 1st."
-            body='Cadence emails parents a Stripe invoice for last month&apos;s lessons. They click → pay. You see "$1,840 collected this month" on your dashboard.'
+            body="Cadence emails parents a Stripe invoice for last month's lessons. They click → pay. You see the total collected on your dashboard."
           />
         </ol>
+      </section>
+
+      {/* Features */}
+      <section className="mb-24">
+        <h2 className="text-3xl font-bold text-center mb-12">
+          Built for music teachers, not &ldquo;lesson businesses.&rdquo;
+        </h2>
+        <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          {[
+            ["Family billing", "One invoice for two siblings, no math."],
+            ["Recurring weekly slots", "Not "round robin" or "one-off booking.""],
+            ["24h parent reminders", "Automated — you never send the text yourself."],
+            ["Stripe-powered payments", "Fast, no merchant account, works in 40+ countries."],
+            ["Spreadsheet import", "Bring your roster over in 2 minutes."],
+            ["Cancellation policies", "Paid-cancel vs. free-cancel rules per student."],
+            ["Group lessons", "Theory class, ensemble, summer camps. (Studio plan)"],
+            ["Practice notes", "Quick log after each lesson, visible to parents. (Studio plan)"],
+          ].map(([title, desc]) => (
+            <div key={title} className="flex gap-3 bg-white rounded-lg border border-slate-200 p-4">
+              <span className="text-brand-500 font-bold mt-0.5">✓</span>
+              <div>
+                <div className="font-medium text-slate-900 text-sm">{title}</div>
+                <div className="text-slate-500 text-sm">{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Founder note */}
+      <section className="mb-24">
+        <div className="max-w-2xl mx-auto bg-slate-50 rounded-2xl border border-slate-200 p-8">
+          <h2 className="text-2xl font-bold mb-4">Why I built Cadence.</h2>
+          <p className="text-slate-600 leading-relaxed">
+            I built Cadence after watching a close family friend track 22 weekly piano students in a
+            Google Sheet that broke every time the school year started. The existing tools all promised
+            "studio management" and delivered software that needed studio management. Cadence does the
+            small set of things you actually do every week, and does them well.
+          </p>
+          <p className="text-slate-500 text-sm mt-4">— Cole, founder</p>
+        </div>
       </section>
 
       {/* Pricing */}
@@ -107,24 +142,14 @@ export default function HomePage() {
             name="Starter"
             price="$0"
             cadence="forever"
-            features={[
-              "Up to 5 students",
-              "Calendar + lesson tracking",
-              "Manual invoice export",
-            ]}
+            features={["Up to 5 students", "Calendar + lesson tracking", "Manual invoice export"]}
             cta="Start free"
           />
           <PriceCard
             name="Solo"
             price="$19"
             cadence="per month"
-            features={[
-              "Up to 30 students",
-              "Auto-invoicing via Stripe",
-              "Family billing",
-              "Lesson reminders",
-              "Make-up tracking",
-            ]}
+            features={["Up to 30 students", "Auto-invoicing via Stripe", "Family billing", "Lesson reminders", "Make-up tracking"]}
             cta="Start 14-day trial"
             highlight
           />
@@ -132,23 +157,64 @@ export default function HomePage() {
             name="Studio"
             price="$39"
             cadence="per month"
-            features={[
-              "Unlimited students",
-              "Auto-charge saved cards",
-              "Group lessons",
-              "Practice log",
-              "Priority support",
-            ]}
+            features={["Unlimited students", "Auto-charge saved cards", "Group lessons", "Practice log", "Priority support"]}
             cta="Start 14-day trial"
           />
         </div>
         <p className="text-center text-sm text-slate-500 mt-6">
-          All plans cancel anytime. Built and supported by a real human who replies to
-          email within 24 hours.
+          All plans cancel anytime. Built and supported by a real human who replies to email within 24 hours.
         </p>
       </section>
 
-      <footer className="text-center text-sm text-slate-500 pt-8 border-t">
+      {/* FAQ */}
+      <section id="faq" className="mb-24">
+        <h2 className="text-3xl font-bold text-center mb-12">Frequently asked questions.</h2>
+        <div className="max-w-2xl mx-auto space-y-6">
+          {[
+            ["Can I import my students from a spreadsheet?",
+              "Yes. Upload a CSV with name, parent email, instrument, and rate — Cadence handles the rest."],
+            ["What happens if I have more than 5 students on the free plan?",
+              "You won't be charged automatically. Your first 5 students stay active; extras are paused until you upgrade or archive someone."],
+            ["Do you charge fees on payments?",
+              "No. You pay Stripe's standard 2.9% + 30¢ directly — Cadence takes nothing on top. This is rare in our category."],
+            ["Will you raise prices on me later?",
+              "Your monthly price is locked for as long as you stay subscribed. Price changes only apply to new customers."],
+            ["What about make-up lessons and cancellation policies?",
+              "Cadence supports the most common rules: free 24h+ cancel, charge for late cancel, credit make-up to next invoice. You set the policy per student."],
+            ["Can I get my data out?",
+              "Always. Export students, lessons, and invoices to CSV at any time. No lock-in."],
+          ].map(([q, a]) => (
+            <div key={q as string} className="border-b border-slate-200 pb-6">
+              <h3 className="font-semibold text-slate-900 mb-2">{q}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="mb-16 text-center bg-brand-500 rounded-2xl py-16 px-8">
+        <h2 className="text-3xl font-bold text-white mb-4">Get your studio running this weekend.</h2>
+        <p className="text-brand-100 mb-8">
+          Setup takes 10 minutes. Cancel anytime. Built for one teacher running a real studio.
+        </p>
+        <Link
+          href="/login"
+          className="inline-block rounded-md bg-white text-brand-600 font-semibold px-8 py-3 hover:bg-brand-50 transition-colors"
+        >
+          Start free — up to 5 students
+        </Link>
+      </section>
+
+      {/* Footer */}
+      <footer className="text-center text-sm text-slate-500 pt-8 border-t space-y-2">
+        <div className="flex items-center justify-center gap-6">
+          <Link href="#pricing" className="hover:text-slate-900">Pricing</Link>
+          <Link href="#faq" className="hover:text-slate-900">FAQ</Link>
+          <Link href="/privacy" className="hover:text-slate-900">Privacy</Link>
+          <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+          <a href="mailto:cole@cadence.app" className="hover:text-slate-900">Contact</a>
+        </div>
         <p>© {new Date().getFullYear()} Cadence. Made for music teachers.</p>
       </footer>
     </main>
@@ -179,26 +245,12 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 }
 
 function PriceCard({
-  name,
-  price,
-  cadence,
-  features,
-  cta,
-  highlight,
+  name, price, cadence, features, cta, highlight,
 }: {
-  name: string;
-  price: string;
-  cadence: string;
-  features: string[];
-  cta: string;
-  highlight?: boolean;
+  name: string; price: string; cadence: string; features: string[]; cta: string; highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-lg border p-6 ${
-        highlight ? "border-brand-500 ring-2 ring-brand-500/20" : "border-slate-200"
-      }`}
-    >
+    <div className={`rounded-lg border p-6 ${highlight ? "border-brand-500 ring-2 ring-brand-500/20" : "border-slate-200"}`}>
       <div className="font-semibold mb-2">{name}</div>
       <div className="mb-4">
         <span className="text-4xl font-bold">{price}</span>{" "}
@@ -212,11 +264,9 @@ function PriceCard({
         ))}
       </ul>
       <Link
-        href="/signup"
+        href="/login"
         className={`block text-center rounded-md py-2 font-medium ${
-          highlight
-            ? "bg-brand-500 text-white hover:bg-brand-600"
-            : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+          highlight ? "bg-brand-500 text-white hover:bg-brand-600" : "bg-slate-100 text-slate-900 hover:bg-slate-200"
         }`}
       >
         {cta}
