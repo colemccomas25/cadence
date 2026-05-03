@@ -105,7 +105,11 @@ export default async function StudentsPage({
             <tbody className="divide-y divide-slate-100">
               {rows.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{s.name}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">
+                    <Link href={`/dashboard/students/${s.id}`} className="hover:text-brand-600">
+                      {s.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{s.instrument ?? "—"}</td>
                   <td className="px-4 py-3 text-slate-500">{s.defaultLessonMinutes} min</td>
                   <td className="px-4 py-3 text-slate-500">

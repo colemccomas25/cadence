@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { lessons, students } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getOrCreateStudioUncached } from "@/lib/studio";
 
 async function getStudio() {
@@ -62,4 +63,6 @@ export async function updateLessonStatus(lessonId: string, status: "held" | "can
   if (!lesson) return;
 
   await db.update(lessons).set({ status }).where(eq(lessons.id, lessonId));
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard");
 }
