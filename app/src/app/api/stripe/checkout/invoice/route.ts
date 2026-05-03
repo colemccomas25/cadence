@@ -36,7 +36,10 @@ export async function GET(req: Request) {
   const stripe = requireStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const monthLabel = new Date(invoice.periodStart).toLocaleDateString("en-US", {
+  const periodStart = new Date(invoice.periodStart);
+  const ym = `${periodStart.getFullYear()}-${String(periodStart.getMonth() + 1).padStart(2, "0")}`;
+
+  const monthLabel = periodStart.toLocaleDateString("en-US", {
     month: "long", year: "numeric",
   });
 
@@ -59,12 +62,12 @@ export async function GET(req: Request) {
     metadata: { type: "invoice", invoiceId: invoice.id },
   });
 
-  // Mark as sent
   await db.update(invoices).set({
     status: "sent",
     sentAt: new Date(),
     stripeCheckoutSessionId: checkout.id,
   }).where(eq(invoices.id, invoiceId));
 
-  return NextResponse.redirect(checkout.url!);
+  const payUrl = encodeURIComponent(checkout.url!);
+  return NextResponse.redirect(`${appUrl}/dashboard/invoices?month=${ym}&sent=${invoiceId}&link=${payUrl}`);
 }
