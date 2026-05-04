@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PricingSection } from "@/components/pricing-section";
 
 export default function HomePage() {
   return (
@@ -8,11 +9,11 @@ export default function HomePage() {
         <div className="text-xl font-semibold tracking-tight">
           Cadence<span className="text-brand-500">.</span>
         </div>
-        <div className="flex items-center gap-6 text-sm">
-          <Link href="#pricing" className="text-slate-600 hover:text-slate-900">Pricing</Link>
-          <Link href="#faq" className="text-slate-600 hover:text-slate-900">FAQ</Link>
-          <Link href="/login" className="text-slate-600 hover:text-slate-900">Log in</Link>
-          <Link href="/login" className="rounded-md bg-brand-500 px-3 py-1.5 text-white hover:bg-brand-600">
+        <div className="flex items-center gap-4 sm:gap-6 text-sm">
+          <Link href="#pricing" className="hidden sm:block text-slate-600 hover:text-slate-900">Pricing</Link>
+          <Link href="#faq" className="hidden sm:block text-slate-600 hover:text-slate-900">FAQ</Link>
+          <Link href="/login" className="hidden sm:block text-slate-600 hover:text-slate-900">Log in</Link>
+          <Link href="/login" className="rounded-md bg-cta px-3 py-2 text-white font-medium hover:opacity-90 transition-opacity min-h-[44px] flex items-center">
             Start free
           </Link>
         </div>
@@ -20,10 +21,8 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="text-center mb-24">
-        <h1 className="text-5xl font-bold tracking-tight text-slate-900 mb-6">
-          The studio software music teachers
-          <br />
-          <span className="text-brand-500">actually finish setting up.</span>
+        <h1 className="text-5xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+          Studio software for private music teachers.
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
           Cadence handles your recurring weekly lessons, monthly invoices, and parent
@@ -33,7 +32,7 @@ export default function HomePage() {
         <div className="flex items-center justify-center gap-4">
           <Link
             href="/login"
-            className="rounded-md bg-brand-500 px-5 py-3 text-white font-medium hover:bg-brand-600"
+            className="rounded-md bg-cta px-5 py-3 text-white font-medium hover:opacity-90 transition-opacity min-h-[48px] flex items-center"
           >
             Start free — up to 5 students
           </Link>
@@ -44,6 +43,22 @@ export default function HomePage() {
         <p className="mt-4 text-sm text-slate-500">
           No credit card required · Imports your spreadsheet in 2 minutes · Cancel anytime
         </p>
+
+        {/* Hero screenshot — replace with <Image> of your weekly calendar */}
+        <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden aspect-[16/9] flex items-center justify-center text-slate-400 text-sm">
+          Screenshot: weekly calendar with one lesson highlighted
+        </div>
+
+        {/* Loom demo — paste your video ID to activate */}
+        {/*
+        <div className="mt-8 rounded-2xl overflow-hidden aspect-video">
+          <iframe
+            src="https://www.loom.com/embed/YOUR_VIDEO_ID_HERE"
+            allowFullScreen
+            className="w-full h-full border-0"
+          />
+        </div>
+        */}
       </section>
 
       {/* Problem */}
@@ -133,38 +148,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="mb-24">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Pricing that scales with your studio.
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <PriceCard
-            name="Starter"
-            price="$0"
-            cadence="forever"
-            features={["Up to 5 students", "Calendar + lesson tracking", "Manual invoice export"]}
-            cta="Start free"
-          />
-          <PriceCard
-            name="Solo"
-            price="$19"
-            cadence="per month"
-            features={["Up to 30 students", "Auto-invoicing via Stripe", "Family billing", "Lesson reminders", "Make-up tracking"]}
-            cta="Start 14-day trial"
-            highlight
-          />
-          <PriceCard
-            name="Studio"
-            price="$39"
-            cadence="per month"
-            features={["Unlimited students", "Auto-charge saved cards", "Group lessons", "Practice log", "Priority support"]}
-            cta="Start 14-day trial"
-          />
-        </div>
-        <p className="text-center text-sm text-slate-500 mt-6">
-          All plans cancel anytime. Built and supported by a real human who replies to email within 24 hours.
-        </p>
-      </section>
+      <PricingSection />
 
       {/* FAQ */}
       <section id="faq" className="mb-24">
@@ -215,7 +199,8 @@ export default function HomePage() {
           <Link href="/terms" className="hover:text-slate-900">Terms</Link>
           <a href="mailto:cole@cadence.app" className="hover:text-slate-900">Contact</a>
         </div>
-        <p>© {new Date().getFullYear()} Cadence. Made for music teachers.</p>
+        <p>Built and supported by Cole. Reply to any email — that&apos;s me.</p>
+        <p>© {new Date().getFullYear()} Cadence.</p>
       </footer>
     </main>
   );
@@ -241,36 +226,5 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
         <p className="text-slate-600">{body}</p>
       </div>
     </li>
-  );
-}
-
-function PriceCard({
-  name, price, cadence, features, cta, highlight,
-}: {
-  name: string; price: string; cadence: string; features: string[]; cta: string; highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-lg border p-6 ${highlight ? "border-brand-500 ring-2 ring-brand-500/20" : "border-slate-200"}`}>
-      <div className="font-semibold mb-2">{name}</div>
-      <div className="mb-4">
-        <span className="text-4xl font-bold">{price}</span>{" "}
-        <span className="text-slate-500 text-sm">/ {cadence}</span>
-      </div>
-      <ul className="space-y-2 mb-6 text-sm text-slate-700">
-        {features.map((f) => (
-          <li key={f} className="flex gap-2">
-            <span className="text-brand-500">✓</span> {f}
-          </li>
-        ))}
-      </ul>
-      <Link
-        href="/login"
-        className={`block text-center rounded-md py-2 font-medium ${
-          highlight ? "bg-brand-500 text-white hover:bg-brand-600" : "bg-slate-100 text-slate-900 hover:bg-slate-200"
-        }`}
-      >
-        {cta}
-      </Link>
-    </div>
   );
 }

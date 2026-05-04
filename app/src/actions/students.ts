@@ -6,6 +6,10 @@ import { students, studios, parentContacts, studentParents } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+
+export type CreateStudentResult =
+  | { success: true; name: string }
+  | { success: false; error: string };
 import { getOrCreateStudioUncached } from "@/lib/studio";
 
 async function getStudio() {
@@ -15,26 +19,30 @@ async function getStudio() {
   return getOrCreateStudioUncached(user.id, user.email ?? undefined, user.name);
 }
 
-export async function createStudent(formData: FormData) {
+export async function createStudent(data: {
+  name: string;
+  instrument?: string;
+  durationMinutes: number;
+  rateDollars: number;
+}): Promise<CreateStudentResult> {
   const studio = await getStudio();
 
-  const name = (formData.get("name") as string).trim();
-  const instrument = (formData.get("instrument") as string | null)?.trim() || null;
-  const durationMinutes = parseInt(formData.get("durationMinutes") as string, 10) || 30;
-  const rateRaw = parseFloat(formData.get("rateDollars") as string) || 40;
-  const rateCents = Math.round(rateRaw * 100);
+  const name = data.name.trim();
+  if (!name) return { success: false, error: "Name is required" };
 
-  if (!name) return;
+  const instrument = data.instrument?.trim() || null;
+  const rateCents = Math.round((data.rateDollars || 40) * 100);
 
   await db.insert(students).values({
     studioId: studio.id,
     name,
     instrument,
-    defaultLessonMinutes: durationMinutes,
+    defaultLessonMinutes: data.durationMinutes || 30,
     defaultRateCents: rateCents,
   });
 
-  redirect("/dashboard/students");
+  revalidatePath("/dashboard/students");
+  return { success: true, name };
 }
 
 export async function archiveStudent(studentId: string) {

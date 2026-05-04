@@ -12,9 +12,10 @@ const config: Config = {
           600: "#4856e6",
           700: "#3a47b8",
         },
+        cta: "var(--cta)",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Helvetica Neue", "sans-serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Helvetica Neue", "sans-serif"],
       },
     },
   },

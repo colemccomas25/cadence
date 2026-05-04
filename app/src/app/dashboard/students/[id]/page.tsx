@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import Link from "next/link";
 import { createTemplate, deactivateTemplate } from "@/actions/templates";
 import { addParent, removeParent } from "@/actions/parents";
+import { SubmitButton } from "@/components/submit-button";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -50,7 +51,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   const todayStr = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="px-4 py-6 md:px-8 md:py-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <Link href="/dashboard/students" className="text-slate-400 hover:text-slate-600 text-sm">
@@ -140,9 +141,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
               <input type="checkbox" name="isPrimary" defaultChecked className="rounded" />
               Primary billing contact
             </label>
-            <button type="submit" className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700">
+            <SubmitButton className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 min-h-[36px]">
               Add contact
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </section>
@@ -247,12 +248,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-md bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
-          >
+          <SubmitButton className="w-full rounded-md bg-cta py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity">
             Save recurring lesson
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </div>

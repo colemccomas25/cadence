@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { students, lessons, lessonTemplates, parentContacts, invoices } from "@/db/schema";
 import { eq, and, gte, lt, count, isNull } from "drizzle-orm";
 import Link from "next/link";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -57,7 +58,7 @@ export default async function DashboardPage() {
   const allDone = steps.every((s) => s.done);
 
   return (
-    <div className="p-8">
+    <div className="px-4 py-6 md:px-12 md:py-8">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">
         {greeting}, {firstName}
       </h1>
@@ -65,50 +66,61 @@ export default async function DashboardPage() {
         {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
       </p>
 
-      <div className="grid grid-cols-2 gap-4 max-w-lg mb-8">
-        <Link
-          href="/dashboard/students"
-          className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
-        >
-          <div className="text-3xl font-bold text-slate-900">{studentCount}</div>
-          <div className="text-sm text-slate-500 mt-1">Active students</div>
-        </Link>
-        <Link
-          href="/dashboard/calendar"
-          className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
-        >
-          <div className="text-3xl font-bold text-slate-900">{todaysLessons.length}</div>
-          <div className="text-sm text-slate-500 mt-1">Lessons today</div>
-        </Link>
-      </div>
+      {studentCount === 0 ? (
+        <EmptyState
+          title="Welcome to your studio."
+          body="Add your first student to start scheduling lessons and tracking payments."
+          cta="Add a student"
+          ctaHref="/dashboard/students/new"
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 max-w-lg mb-8">
+            <Link
+              href="/dashboard/students"
+              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
+            >
+              <div className="text-3xl font-bold text-slate-900">{studentCount}</div>
+              <div className="text-sm text-slate-500 mt-1">Active students</div>
+            </Link>
+            <Link
+              href="/dashboard/calendar"
+              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
+            >
+              <div className="text-3xl font-bold text-slate-900">{todaysLessons.length}</div>
+              <div className="text-sm text-slate-500 mt-1">Lessons today</div>
+            </Link>
+          </div>
 
-      {/* Onboarding checklist — hide once all steps are done */}
-      {!allDone && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-lg">
-          <h2 className="text-sm font-semibold text-slate-900 mb-4">Get started</h2>
-          <ol className="space-y-3">
-            {steps.map((step, i) => (
-              <li key={step.label} className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
-                    step.done
-                      ? "bg-green-100 text-green-600"
-                      : "bg-slate-100 text-slate-400"
-                  }`}
-                >
-                  {step.done ? "✓" : i + 1}
-                </div>
-                {step.done ? (
-                  <span className="text-sm text-slate-400 line-through">{step.label}</span>
-                ) : (
-                  <Link href={step.href} className="text-sm text-slate-700 hover:text-brand-600 font-medium">
-                    {step.label} →
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ol>
-        </div>
+          {/* Onboarding checklist — hide once all steps are done */}
+          {!allDone && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-lg">
+              <h2 className="text-sm font-semibold text-slate-900 mb-4">Get started</h2>
+              <ol className="space-y-3">
+                {steps.map((step, i) => (
+                  <li key={step.label} className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                        step.done
+                          ? "bg-green-100 text-green-600"
+                          : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {step.done ? "✓" : i + 1}
+                    </div>
+                    {step.done ? (
+                      <span className="text-sm text-slate-400 line-through">{step.label}</span>
+                    ) : (
+                      <Link href={step.href} className="text-sm text-slate-700 hover:text-brand-600 font-medium">
+                        {step.label} →
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

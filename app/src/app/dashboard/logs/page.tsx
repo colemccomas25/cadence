@@ -26,11 +26,11 @@ export default async function LogsPage() {
     .limit(100);
 
   return (
-    <div className="p-8">
+    <div className="px-4 py-6 md:px-12 md:py-8">
       <h1 className="text-xl font-semibold text-slate-900 mb-6">Email logs</h1>
 
       {logs.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
+        <div className="bg-white rounded-xl border border-dashed border-slate-300 p-6 text-center">
           <p className="text-slate-500 text-sm">No emails sent yet.</p>
         </div>
       ) : (

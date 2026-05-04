@@ -2,6 +2,7 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { SidebarNav } from "@/components/sidebar-nav";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +17,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="w-52 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-10">
+      <aside className="hidden md:flex w-52 bg-white border-r border-slate-200 flex-col fixed inset-y-0 z-10">
         <div className="px-4 py-5 border-b border-slate-100">
           <div className="text-lg font-semibold tracking-tight">
             Cadence<span className="text-brand-500">.</span>
@@ -44,7 +45,8 @@ export default async function DashboardLayout({
         </div>
       </aside>
 
-      <main className="flex-1 ml-52">{children}</main>
+      <main className="flex-1 md:ml-52 pb-16 md:pb-0">{children}</main>
+      <MobileBottomNav />
     </div>
   );
 }
