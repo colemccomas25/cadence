@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { PricingSection } from "@/components/pricing-section";
+import dynamic from "next/dynamic";
+
+const PricingSection = dynamic(() =>
+  import("@/components/pricing-section").then((m) => ({ default: m.PricingSection }))
+);
 
 export default function HomePage() {
   return (
