@@ -16,6 +16,7 @@ export default function HomePage() {
         <div className="flex items-center gap-4 sm:gap-6 text-sm">
           <Link href="#pricing" className="hidden sm:block text-slate-600 hover:text-slate-900">Pricing</Link>
           <Link href="#faq" className="hidden sm:block text-slate-600 hover:text-slate-900">FAQ</Link>
+          <Link href="/docs" className="hidden sm:block text-slate-600 hover:text-slate-900">Help</Link>
           <Link href="/login" className="hidden sm:block text-slate-600 hover:text-slate-900">Log in</Link>
           <Link href="/login" className="rounded-md bg-cta px-3 py-2 text-white font-medium hover:opacity-90 transition-opacity min-h-[44px] flex items-center">
             Start free

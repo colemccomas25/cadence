@@ -6,6 +6,7 @@ import Link from "next/link";
 const PLANS = [
   {
     name: "Starter",
+    priceKey: null,
     monthly: 0,
     annualPerMonth: 0,
     annualTotal: 0,
@@ -16,6 +17,7 @@ const PLANS = [
   },
   {
     name: "Solo",
+    priceKey: "solo",
     monthly: 19,
     annualPerMonth: 15.83,
     annualTotal: 190,
@@ -32,6 +34,7 @@ const PLANS = [
   },
   {
     name: "Studio",
+    priceKey: "studio",
     monthly: 39,
     annualPerMonth: 32.42,
     annualTotal: 389,
@@ -125,6 +128,10 @@ export function PricingSection() {
             : annual
               ? `per month · $${plan.annualTotal} billed annually`
               : "per month";
+          const cadence = annual ? "yearly" : "monthly";
+          const href = plan.priceKey
+            ? `/login?callbackUrl=${encodeURIComponent(`/api/stripe/checkout/subscription?price=${plan.priceKey}_${cadence}`)}`
+            : "/login";
 
           return (
             <div
@@ -160,7 +167,7 @@ export function PricingSection() {
               </ul>
 
               <Link
-                href="/login"
+                href={href}
                 className={`block text-center rounded-md py-2.5 font-medium min-h-[44px] flex items-center justify-center transition-opacity ${
                   plan.highlight
                     ? "bg-cta text-white hover:opacity-90"
