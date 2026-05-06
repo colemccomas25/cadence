@@ -167,11 +167,12 @@ export default function HomePage() {
         </section>
 
         {/* Final CTA */}
-        <section className="mb-16 text-center bg-ink rounded-xl py-16 px-8">
-          <h2 className="text-3xl font-display text-white mb-4">
+        <section className="mb-16 text-center bg-muted rounded-xl py-16 px-8 border border-line">
+          <div className="text-2xl font-display text-accent mb-6 tracking-tight">Cadence.</div>
+          <h2 className="text-3xl md:text-4xl font-display tracking-tight text-ink mb-4">
             Get your studio running this weekend.
           </h2>
-          <p className="text-stone-400 mb-8">
+          <p className="text-inkMuted mb-8 max-w-md mx-auto">
             Setup takes 10 minutes. Cancel anytime. Built for one teacher running a real studio.
           </p>
           <Link

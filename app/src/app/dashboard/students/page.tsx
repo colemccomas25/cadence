@@ -117,7 +117,7 @@ export default async function StudentsPage({
               </thead>
               <tbody className="divide-y divide-line">
                 {rows.map((s, i) => (
-                  <tr key={s.id} className={`hover:bg-accentSoft transition-colors ${i % 2 === 1 ? "bg-muted/50" : "bg-surface"}`}>
+                  <tr key={s.id} className={`hover:bg-accentSoft transition-colors ${i % 2 === 1 ? "bg-stone-50" : "bg-white"}`}>
                     <td className="px-4 py-3 font-medium text-ink">
                       <Link href={`/dashboard/students/${s.id}`} className="hover:text-accent">
                         {s.name}
