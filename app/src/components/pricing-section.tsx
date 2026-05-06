@@ -10,7 +10,6 @@ const PLANS = [
     monthly: 0,
     annualPerMonth: 0,
     annualTotal: 0,
-    cadenceLabel: "forever",
     features: ["Up to 5 students", "Calendar + lesson tracking", "Manual invoice export"],
     cta: "Start free",
     highlight: false,
@@ -21,7 +20,6 @@ const PLANS = [
     monthly: 19,
     annualPerMonth: 15.83,
     annualTotal: 190,
-    cadenceLabel: "per month",
     features: [
       "Up to 30 students",
       "Auto-invoicing via Stripe",
@@ -38,7 +36,6 @@ const PLANS = [
     monthly: 39,
     annualPerMonth: 32.42,
     annualTotal: 389,
-    cadenceLabel: "per month",
     features: [
       "Unlimited students",
       "Auto-charge saved cards",
@@ -52,17 +49,17 @@ const PLANS = [
 ];
 
 const COMPARISON: { feature: string; starter: boolean | string; solo: boolean | string; studio: boolean | string }[] = [
-  { feature: "Students",            starter: "5",         solo: "30",        studio: "Unlimited" },
-  { feature: "Calendar & tracking", starter: true,        solo: true,        studio: true },
-  { feature: "Manual invoice CSV",  starter: true,        solo: true,        studio: true },
-  { feature: "Auto-invoicing",      starter: false,       solo: true,        studio: true },
-  { feature: "Family billing",      starter: false,       solo: true,        studio: true },
-  { feature: "Parent reminders",    starter: false,       solo: true,        studio: true },
-  { feature: "Make-up tracking",    starter: false,       solo: true,        studio: true },
-  { feature: "Auto-charge cards",   starter: false,       solo: false,       studio: true },
-  { feature: "Group lessons",       starter: false,       solo: false,       studio: true },
-  { feature: "Practice log",        starter: false,       solo: false,       studio: true },
-  { feature: "Priority support",    starter: false,       solo: false,       studio: true },
+  { feature: "Students",            starter: "5",   solo: "30",  studio: "Unlimited" },
+  { feature: "Calendar & tracking", starter: true,  solo: true,  studio: true },
+  { feature: "Manual invoice CSV",  starter: true,  solo: true,  studio: true },
+  { feature: "Auto-invoicing",      starter: false, solo: true,  studio: true },
+  { feature: "Family billing",      starter: false, solo: true,  studio: true },
+  { feature: "Parent reminders",    starter: false, solo: true,  studio: true },
+  { feature: "Make-up tracking",    starter: false, solo: true,  studio: true },
+  { feature: "Auto-charge cards",   starter: false, solo: false, studio: true },
+  { feature: "Group lessons",       starter: false, solo: false, studio: true },
+  { feature: "Practice log",        starter: false, solo: false, studio: true },
+  { feature: "Priority support",    starter: false, solo: false, studio: true },
 ];
 
 const FAQS = [
@@ -81,9 +78,9 @@ const FAQS = [
 ];
 
 function Cell({ value }: { value: boolean | string }) {
-  if (value === true) return <span className="text-green-600 font-semibold">✓</span>;
-  if (value === false) return <span className="text-slate-300">—</span>;
-  return <span className="text-slate-700 font-medium">{value}</span>;
+  if (value === true) return <span className="text-accent font-semibold">✓</span>;
+  if (value === false) return <span className="text-inkSubtle">—</span>;
+  return <span className="text-ink font-medium">{value}</span>;
 }
 
 export function PricingSection() {
@@ -91,25 +88,25 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="mb-24">
-      <h2 className="text-3xl font-bold text-center mb-6">
+      <h2 className="text-3xl md:text-4xl font-display tracking-tight text-center mb-6">
         Pricing that scales with your studio.
       </h2>
 
       {/* Annual toggle */}
       <div className="flex items-center justify-center gap-3 mb-10">
-        <span className={`text-sm font-medium ${!annual ? "text-slate-900" : "text-slate-400"}`}>Monthly</span>
+        <span className={`text-sm font-medium ${!annual ? "text-ink" : "text-inkSubtle"}`}>Monthly</span>
         <button
           onClick={() => setAnnual((v) => !v)}
           aria-label="Toggle billing period"
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${annual ? "bg-brand-500" : "bg-slate-200"}`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${annual ? "bg-accent" : "bg-stone-200"}`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${annual ? "translate-x-6" : "translate-x-1"}`}
           />
         </button>
-        <span className={`text-sm font-medium ${annual ? "text-slate-900" : "text-slate-400"}`}>
+        <span className={`text-sm font-medium ${annual ? "text-ink" : "text-inkSubtle"}`}>
           Annual{" "}
-          <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+          <span className="ml-1 rounded-full bg-accentSoft px-2 py-0.5 text-xs font-semibold text-accent">
             Save 17%
           </span>
         </span>
@@ -136,31 +133,29 @@ export function PricingSection() {
           return (
             <div
               key={plan.name}
-              className={`rounded-xl border p-6 flex flex-col ${
-                plan.highlight
-                  ? "border-cta ring-2 ring-orange-200"
-                  : "border-slate-200"
+              className={`rounded-lg border p-6 flex flex-col bg-surface ${
+                plan.highlight ? "border-2 border-accent" : "border-line"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-slate-900">{plan.name}</span>
+                <span className="font-semibold text-ink">{plan.name}</span>
                 {plan.highlight && (
-                  <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-cta border border-orange-200">
+                  <span className="rounded-full bg-accentSoft px-2 py-0.5 text-xs font-semibold text-accent">
                     Most popular
                   </span>
                 )}
               </div>
 
               <div className="mb-1">
-                <span className="text-4xl font-bold text-slate-900">{price}</span>
-                {plan.monthly > 0 && <span className="text-slate-500 text-sm ml-1">/mo</span>}
+                <span className="text-4xl font-bold font-mono text-ink">{price}</span>
+                {plan.monthly > 0 && <span className="text-inkMuted text-sm ml-1">/mo</span>}
               </div>
-              <p className="text-xs text-slate-400 mb-5">{sub}</p>
+              <p className="text-xs text-inkSubtle mb-5">{sub}</p>
 
-              <ul className="space-y-2 mb-6 text-sm text-slate-700 flex-1">
+              <ul className="space-y-2 mb-6 text-sm text-ink flex-1">
                 {plan.features.map((f) => (
                   <li key={f} className="flex gap-2">
-                    <span className={plan.highlight ? "text-cta" : "text-brand-500"}>✓</span>
+                    <span className="text-accent">✓</span>
                     {f}
                   </li>
                 ))}
@@ -168,10 +163,10 @@ export function PricingSection() {
 
               <Link
                 href={href}
-                className={`block text-center rounded-md py-2.5 font-medium min-h-[44px] flex items-center justify-center transition-opacity ${
+                className={`block text-center rounded-sm py-2.5 font-medium min-h-[44px] flex items-center justify-center transition-colors ${
                   plan.highlight
-                    ? "bg-cta text-white hover:opacity-90"
-                    : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+                    ? "bg-accent text-white hover:bg-accentHover"
+                    : "bg-muted text-ink hover:bg-stone-200"
                 }`}
               >
                 {plan.cta}
@@ -182,20 +177,20 @@ export function PricingSection() {
       </div>
 
       {/* Feature comparison table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 mb-12">
+      <div className="overflow-x-auto rounded-lg border border-line mb-12">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-4 py-3 text-left font-medium text-slate-500 w-1/2">Feature</th>
-              <th className="px-4 py-3 text-center font-medium text-slate-500">Starter</th>
-              <th className="px-4 py-3 text-center font-medium text-cta">Solo</th>
-              <th className="px-4 py-3 text-center font-medium text-slate-500">Studio</th>
+            <tr className="border-b border-line bg-muted">
+              <th className="px-4 py-3 text-left font-medium text-inkMuted w-1/2">Feature</th>
+              <th className="px-4 py-3 text-center font-medium text-inkMuted">Starter</th>
+              <th className="px-4 py-3 text-center font-medium text-accent">Solo</th>
+              <th className="px-4 py-3 text-center font-medium text-inkMuted">Studio</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {COMPARISON.map((row) => (
-              <tr key={row.feature} className="hover:bg-slate-50">
-                <td className="px-4 py-3 text-slate-700">{row.feature}</td>
+              <tr key={row.feature} className="hover:bg-muted transition-colors">
+                <td className="px-4 py-3 text-inkMuted">{row.feature}</td>
                 <td className="px-4 py-3 text-center"><Cell value={row.starter} /></td>
                 <td className="px-4 py-3 text-center"><Cell value={row.solo} /></td>
                 <td className="px-4 py-3 text-center"><Cell value={row.studio} /></td>
@@ -208,9 +203,9 @@ export function PricingSection() {
       {/* Pricing FAQs */}
       <div className="max-w-2xl mx-auto space-y-6">
         {FAQS.map(({ q, a }) => (
-          <div key={q} className="border-b border-slate-200 pb-6">
-            <h3 className="font-semibold text-slate-900 mb-2">{q}</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">{a}</p>
+          <div key={q} className="border-b border-line pb-6">
+            <h3 className="font-medium text-ink mb-2">{q}</h3>
+            <p className="text-inkMuted text-sm leading-relaxed">{a}</p>
           </div>
         ))}
       </div>

@@ -2,45 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
+@layer base {
+  :root {
+    /* Backgrounds */
+    --bg-page:    #FAF8F4;
+    --bg-surface: #FFFFFF;
+    --bg-muted:   #F3F0E9;
+    --bg-inverse: #1C1917;
 
-  /* surfaces */
-  --bg-page: #ffffff;
-  --bg-card: #f8f9fc;
-  --bg-muted: #f1f3f7;
+    /* Foregrounds */
+    --fg-default: #1C1917;
+    --fg-muted:   #57534E;
+    --fg-subtle:  #A8A29E;
 
-  /* text */
-  --fg-default: #0f172a;
-  --fg-muted: #64748b;
-  --fg-subtle: #94a3b8;
+    /* Borders */
+    --border-default: #E7E5E0;
+    --border-strong:  #D6D3CE;
 
-  /* brand */
-  --brand: #5b6cff;
-  --brand-foreground: #ffffff;
+    /* Accent — single warm amber */
+    --accent:       #B45309;
+    --accent-hover: #92400E;
+    --accent-soft:  #FEF3C7;
 
-  /* CTA — warm contrast button (Google 6.4M-session study) */
-  --cta: #f97316;
-  --cta-hover: #ea580c;
-  --cta-foreground: #ffffff;
+    /* Status */
+    --success: #15803D;
+    --warning: #B45309;
+    --danger:  #B91C1C;
 
-  /* status */
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(28,25,23,0.04);
+    --shadow-md: 0 4px 12px -2px rgba(28,25,23,0.06), 0 2px 4px -1px rgba(28,25,23,0.04);
+    --shadow-lg: 0 12px 32px -8px rgba(28,25,23,0.10);
 
-  /* borders */
-  --border: #e2e8f0;
-  --ring: #5b6cff;
+    /* Legacy — kept for dashboard backward compat */
+    --cta: #f97316;
+    --cta-hover: #ea580c;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--fg-default);
+    @apply antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--fg-default);
+  }
 }
 
-html,
-body {
-  height: 100%;
-}
-
-body {
-  @apply bg-white text-slate-900 antialiased;
-  font-feature-settings: "cv11", "ss01";
+/* Status palette — used across calendar and invoices */
+@layer components {
+  .status-scheduled    { @apply bg-sky-50 text-sky-700; }
+  .status-held         { background-color: var(--accent-soft); color: var(--accent); }
+  .status-cancelled    { background-color: var(--bg-muted); color: var(--fg-subtle); }
+  .status-paid-cancel  { @apply bg-amber-50 text-amber-700; }
+  .status-late-cancel  { @apply bg-red-50; color: var(--danger); }
+  .status-makeup       { @apply bg-violet-50 text-violet-700; }
+  .status-draft        { background-color: var(--bg-muted); color: var(--fg-muted); }
+  .status-sent         { @apply bg-sky-50 text-sky-700; }
+  .status-paid         { @apply bg-green-50; color: var(--success); }
+  .status-overdue      { @apply bg-red-50; color: var(--danger); }
+  .status-void         { background-color: var(--bg-muted); color: var(--fg-subtle); }
 }

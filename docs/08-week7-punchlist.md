@@ -174,17 +174,15 @@ If pricing is on its own page, give it the dedicated treatment:
 
 ---
 
-## #7 — Speed audit (30 min)
+## #7 — Speed audit (30 min) ✅
 
 Run once. Fix the top issue.
 
-- [ ] Deploy current state to Vercel.
-- [ ] Run **Lighthouse on mobile** (Chrome DevTools → Lighthouse → Mobile + Performance only).
-- [ ] If Performance < 90, fix the *single biggest* issue. Usually one of:
-  - Unoptimized images → use `<Image>` from `next/image` and export WebP
-  - Render-blocking JS → mark below-fold components as `dynamic()` imports
-  - Unused JavaScript → check Network tab, remove unused libraries
-- [ ] Re-run Lighthouse. Aim for ≥ 90.
+- [x] Deploy current state to Vercel.
+- [x] Run **Lighthouse on mobile** (Chrome DevTools → Lighthouse → Mobile + Performance only).
+- [x] If Performance < 90, fix the *single biggest* issue. Usually one of:
+  - Render-blocking JS → lazy-loaded PricingSection with `dynamic()` import
+- [x] Re-run Lighthouse. Aim for ≥ 90. **Result: 93.**
 
 ---
 
@@ -204,11 +202,11 @@ Run once. Fix the top issue.
 Before declaring polish "done":
 
 - [ ] **5-second test** with one real music teacher friend (or any friend). Can they answer "what does this product do?" and "what would you do next?" in 5 seconds?
-- [ ] **375px walk-through** — full happy path works on iPhone SE.
-- [ ] **Lighthouse Performance ≥ 90** on mobile.
+- [x] **375px walk-through** — full happy path works on iPhone SE.
+- [x] **Lighthouse Performance ≥ 90** on mobile. (93)
 - [ ] **WebAIM contrast check** passes AA on every interactive element.
-- [ ] **No silent forms** — every submit shows feedback.
-- [ ] **No blank empty states** — every empty view has title + body + CTA.
+- [x] **No silent forms** — every submit shows feedback.
+- [x] **No blank empty states** — every empty view has title + body + CTA.
 
 If all six pass, ship it and move to Week 8 (public launch prep).
 

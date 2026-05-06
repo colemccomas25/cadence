@@ -33,7 +33,6 @@ export default async function DashboardPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user.name?.split(" ")[0] ?? "there";
 
-  // Onboarding checklist data
   const [{ value: templateCount }] = await db
     .select({ value: count() })
     .from(lessonTemplates)
@@ -50,19 +49,19 @@ export default async function DashboardPage() {
     .where(eq(invoices.studioId, studio.id));
 
   const steps = [
-    { label: "Add your first student", done: studentCount > 0, href: "/dashboard/students/new" },
-    { label: "Add a parent billing contact", done: parentCount > 0, href: "/dashboard/students" },
-    { label: "Set up a recurring lesson", done: templateCount > 0, href: "/dashboard/students" },
-    { label: "Generate your first invoice", done: invoiceCount > 0, href: "/dashboard/invoices" },
+    { label: "Add your first student",      done: studentCount > 0,  href: "/dashboard/students/new" },
+    { label: "Add a parent billing contact", done: parentCount > 0,   href: "/dashboard/students" },
+    { label: "Set up a recurring lesson",    done: templateCount > 0, href: "/dashboard/students" },
+    { label: "Generate your first invoice",  done: invoiceCount > 0,  href: "/dashboard/invoices" },
   ];
   const allDone = steps.every((s) => s.done);
 
   return (
     <div className="px-4 py-6 md:px-12 md:py-8">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">
+      <h1 className="text-3xl font-display tracking-tight text-ink mb-1">
         {greeting}, {firstName}
       </h1>
-      <p className="text-slate-400 text-sm mb-8">
+      <p className="text-inkSubtle text-sm mb-8">
         {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
       </p>
 
@@ -78,40 +77,39 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-4 max-w-lg mb-8">
             <Link
               href="/dashboard/students"
-              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
+              className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
             >
-              <div className="text-3xl font-bold text-slate-900">{studentCount}</div>
-              <div className="text-sm text-slate-500 mt-1">Active students</div>
+              <div className="text-3xl font-bold font-mono text-ink">{studentCount}</div>
+              <div className="text-sm text-inkMuted mt-1">Active students</div>
             </Link>
             <Link
               href="/dashboard/calendar"
-              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 transition-colors"
+              className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
             >
-              <div className="text-3xl font-bold text-slate-900">{todaysLessons.length}</div>
-              <div className="text-sm text-slate-500 mt-1">Lessons today</div>
+              <div className="text-3xl font-bold font-mono text-ink">{todaysLessons.length}</div>
+              <div className="text-sm text-inkMuted mt-1">Lessons today</div>
             </Link>
           </div>
 
-          {/* Onboarding checklist — hide once all steps are done */}
           {!allDone && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-lg">
-              <h2 className="text-sm font-semibold text-slate-900 mb-4">Get started</h2>
+            <div className="bg-surface rounded-lg border border-line p-6 max-w-lg">
+              <h2 className="text-sm font-semibold text-ink mb-4">Get started</h2>
               <ol className="space-y-3">
                 {steps.map((step, i) => (
                   <li key={step.label} className="flex items-center gap-3">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-semibold flex-shrink-0 ${
                         step.done
-                          ? "bg-green-100 text-green-600"
-                          : "bg-slate-100 text-slate-400"
+                          ? "bg-accentSoft text-accent"
+                          : "bg-muted text-inkSubtle"
                       }`}
                     >
                       {step.done ? "✓" : i + 1}
                     </div>
                     {step.done ? (
-                      <span className="text-sm text-slate-400 line-through">{step.label}</span>
+                      <span className="text-sm text-inkSubtle line-through">{step.label}</span>
                     ) : (
-                      <Link href={step.href} className="text-sm text-slate-700 hover:text-brand-600 font-medium">
+                      <Link href={step.href} className="text-sm text-ink hover:text-accent font-medium">
                         {step.label} →
                       </Link>
                     )}

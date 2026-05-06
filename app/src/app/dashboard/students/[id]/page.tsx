@@ -19,6 +19,8 @@ function minutesToTime(minutes: number) {
   return `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
+const inputCls = "w-full rounded-md border border-line bg-surface px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent";
+
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -54,42 +56,42 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
-        <Link href="/dashboard/students" className="text-slate-400 hover:text-slate-600 text-sm">
+        <Link href="/dashboard/students" className="text-inkSubtle hover:text-ink text-sm transition-colors">
           ← Students
         </Link>
-        <span className="text-slate-300">/</span>
-        <h1 className="text-xl font-semibold text-slate-900">{student.name}</h1>
+        <span className="text-inkSubtle">/</span>
+        <h1 className="text-3xl font-display tracking-tight text-ink">{student.name}</h1>
       </div>
-      <p className="text-sm text-slate-500 mb-8">
+      <p className="text-sm text-inkMuted mb-8 font-mono">
         {student.instrument ?? "No instrument"} · {student.defaultLessonMinutes} min ·{" "}
         ${(student.defaultRateCents / 100).toFixed(0)}/lesson
       </p>
 
       {/* Recurring schedule */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
           Recurring schedule
         </h2>
 
         {templates.length === 0 ? (
-          <p className="text-sm text-slate-400">No recurring lessons set up yet.</p>
+          <p className="text-sm text-inkSubtle">No recurring lessons set up yet.</p>
         ) : (
           <div className="space-y-2 mb-4">
             {templates.map((t) => (
               <div
                 key={t.id}
-                className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center justify-between"
+                className="bg-surface rounded-md border border-line px-4 py-3 flex items-center justify-between"
               >
                 <div>
-                  <span className="font-medium text-slate-900">{DAYS[t.dayOfWeek]}s</span>
-                  <span className="text-slate-500 text-sm ml-2">
+                  <span className="font-medium text-ink">{DAYS[t.dayOfWeek]}s</span>
+                  <span className="text-inkMuted text-sm ml-2 font-mono">
                     {minutesToTime(t.startTimeMinutes)} · {t.durationMinutes} min ·{" "}
                     ${(t.rateCents / 100).toFixed(0)} ·{" "}
                     {t.recurrence === "biweekly" ? "every 2 weeks" : "weekly"}
                   </span>
                 </div>
                 <form action={deactivateTemplate.bind(null, t.id, student.id)}>
-                  <button type="submit" className="text-xs text-slate-400 hover:text-red-500">
+                  <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">
                     Remove
                   </button>
                 </form>
@@ -101,47 +103,47 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
       {/* Parent contacts */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
           Billing contacts
         </h2>
         {parents.length === 0 ? (
-          <p className="text-sm text-slate-400 mb-3">No billing contacts yet — add one to enable invoicing.</p>
+          <p className="text-sm text-inkSubtle mb-3">No billing contacts yet — add one to enable invoicing.</p>
         ) : (
           <div className="space-y-2 mb-4">
             {parents.map((p) => (
-              <div key={p.id} className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center justify-between">
+              <div key={p.id} className="bg-surface rounded-md border border-line px-4 py-3 flex items-center justify-between">
                 <div>
-                  <span className="font-medium text-slate-900">{p.name ?? p.email}</span>
-                  {p.name && <span className="text-slate-400 text-sm ml-2">{p.email}</span>}
-                  {p.isPrimary && <span className="ml-2 text-xs bg-brand-50 text-brand-600 px-1.5 py-0.5 rounded">Primary</span>}
+                  <span className="font-medium text-ink">{p.name ?? p.email}</span>
+                  {p.name && <span className="text-inkSubtle text-sm ml-2">{p.email}</span>}
+                  {p.isPrimary && (
+                    <span className="ml-2 text-xs bg-accentSoft text-accent px-1.5 py-0.5 rounded">Primary</span>
+                  )}
                 </div>
                 <form action={removeParent.bind(null, student.id, p.id)}>
-                  <button type="submit" className="text-xs text-slate-400 hover:text-red-500">Remove</button>
+                  <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">Remove</button>
                 </form>
               </div>
             ))}
           </div>
         )}
-        <form action={addParent} className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+        <form action={addParent} className="bg-surface rounded-lg border border-line p-4 space-y-3">
           <input type="hidden" name="studentId" value={student.id} />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Parent name</label>
-              <input name="name" placeholder="Sarah Chen"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <label className="block text-xs font-medium text-inkMuted mb-1">Parent name</label>
+              <input name="name" placeholder="Sarah Chen" className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Email <span className="text-red-400">*</span></label>
-              <input name="email" type="email" required placeholder="sarah@example.com"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <label className="block text-xs font-medium text-inkMuted mb-1">Email <span className="text-danger">*</span></label>
+              <input name="email" type="email" required placeholder="sarah@example.com" className={inputCls} />
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-inkMuted cursor-pointer">
               <input type="checkbox" name="isPrimary" defaultChecked className="rounded" />
               Primary billing contact
             </label>
-            <SubmitButton className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 min-h-[36px]">
+            <SubmitButton className="rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 transition-colors min-h-[36px]">
               Add contact
             </SubmitButton>
           </div>
@@ -150,49 +152,35 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
       {/* Add recurring lesson form */}
       <section>
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
           Add recurring lesson
         </h2>
 
         <form
           action={createTemplate}
-          className="bg-white rounded-xl border border-slate-200 p-5 space-y-4"
+          className="bg-surface rounded-lg border border-line p-5 space-y-4"
         >
           <input type="hidden" name="studentId" value={student.id} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Day</label>
-              <select
-                name="dayOfWeek"
-                defaultValue="2"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
+              <label className="block text-xs font-medium text-inkMuted mb-1">Day</label>
+              <select name="dayOfWeek" defaultValue="2" className={inputCls}>
                 {DAYS.map((d, i) => (
                   <option key={i} value={i}>{d}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
-              <input
-                name="time"
-                type="time"
-                required
-                defaultValue="16:00"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <label className="block text-xs font-medium text-inkMuted mb-1">Time</label>
+              <input name="time" type="time" required defaultValue="16:00" className={inputCls} />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Duration</label>
-              <select
-                name="durationMinutes"
-                defaultValue={student.defaultLessonMinutes}
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
+              <label className="block text-xs font-medium text-inkMuted mb-1">Duration</label>
+              <select name="durationMinutes" defaultValue={student.defaultLessonMinutes} className={inputCls}>
                 <option value="30">30 min</option>
                 <option value="45">45 min</option>
                 <option value="60">60 min</option>
@@ -200,23 +188,19 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Rate ($)</label>
+              <label className="block text-xs font-medium text-inkMuted mb-1">Rate ($)</label>
               <input
                 name="rateDollars"
                 type="number"
                 min="0"
                 step="0.01"
                 defaultValue={(student.defaultRateCents / 100).toFixed(0)}
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Repeats</label>
-              <select
-                name="recurrence"
-                defaultValue="weekly"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
+              <label className="block text-xs font-medium text-inkMuted mb-1">Repeats</label>
+              <select name="recurrence" defaultValue="weekly" className={inputCls}>
                 <option value="weekly">Weekly</option>
                 <option value="biweekly">Every 2 weeks</option>
               </select>
@@ -225,30 +209,20 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Starting <span className="text-red-400">*</span>
+              <label className="block text-xs font-medium text-inkMuted mb-1">
+                Starting <span className="text-danger">*</span>
               </label>
-              <input
-                name="startsOn"
-                type="date"
-                required
-                defaultValue={todayStr}
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <input name="startsOn" type="date" required defaultValue={todayStr} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="block text-xs font-medium text-inkMuted mb-1">
                 Ending (optional)
               </label>
-              <input
-                name="endsOn"
-                type="date"
-                className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <input name="endsOn" type="date" className={inputCls} />
             </div>
           </div>
 
-          <SubmitButton className="w-full rounded-md bg-cta py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity">
+          <SubmitButton className="w-full rounded-md bg-accent py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
             Save recurring lesson
           </SubmitButton>
         </form>

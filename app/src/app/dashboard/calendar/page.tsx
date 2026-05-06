@@ -28,13 +28,13 @@ function startOfWeek(d: Date) {
   return day;
 }
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  scheduled:                  { label: "Scheduled",          color: "bg-blue-50 text-blue-600" },
-  held:                       { label: "Held",               color: "bg-green-50 text-green-700" },
-  cancelled_by_teacher:       { label: "Cancelled",          color: "bg-slate-100 text-slate-500" },
-  cancelled_by_student_paid:  { label: "Cancelled (paid)",   color: "bg-amber-50 text-amber-700" },
-  cancelled_by_student_unpaid:{ label: "Cancelled (unpaid)", color: "bg-red-50 text-red-600" },
-  make_up_scheduled:          { label: "Make-up",            color: "bg-purple-50 text-purple-700" },
+const STATUS_META: Record<string, { label: string; color: string; bar: string }> = {
+  scheduled:                   { label: "Scheduled",          color: "status-scheduled",   bar: "bg-sky-400" },
+  held:                        { label: "Held",               color: "status-held",        bar: "bg-amber-500" },
+  cancelled_by_teacher:        { label: "Cancelled",          color: "status-cancelled",   bar: "bg-stone-300" },
+  cancelled_by_student_paid:   { label: "Cancelled (paid)",   color: "status-paid-cancel", bar: "bg-amber-400" },
+  cancelled_by_student_unpaid: { label: "Cancelled (unpaid)", color: "status-late-cancel", bar: "bg-red-400" },
+  make_up_scheduled:           { label: "Make-up",            color: "status-makeup",      bar: "bg-violet-400" },
 };
 
 type LessonRow = {
@@ -53,30 +53,33 @@ type LessonRow = {
 function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: boolean }) {
   const meta = STATUS_META[lesson.status] ?? STATUS_META.scheduled;
   return (
-    <div className="bg-white rounded-lg border border-slate-200 px-4 py-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className={`${compact ? "text-xs" : "text-sm"} font-medium text-slate-900`}>
-            {formatTime(new Date(lesson.startsAt))}
-          </div>
-          <div className={`font-semibold text-slate-900 ${compact ? "text-sm" : ""}`}>
-            {lesson.studentName}
-          </div>
-          {!compact && lesson.studentInstrument && (
-            <div className="text-xs text-slate-400">{lesson.studentInstrument}</div>
-          )}
-          <div className="text-xs text-slate-400">
+    <div className="bg-surface rounded-md border border-line overflow-hidden flex">
+      <div className={`w-1 flex-shrink-0 ${meta.bar}`} />
+      <div className="flex-1 px-3 py-2.5 min-w-0">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-inkSubtle mb-0.5">
+          {formatTime(new Date(lesson.startsAt))}
+        </div>
+        <div className={`font-medium text-ink leading-tight ${compact ? "text-sm truncate" : "text-base"}`}>
+          {lesson.studentName}
+        </div>
+        {!compact && lesson.studentInstrument && (
+          <div className="text-xs text-inkSubtle">{lesson.studentInstrument}</div>
+        )}
+        {!compact && (
+          <div className="text-xs text-inkSubtle font-mono mt-0.5">
             {lesson.durationMinutes} min · ${(lesson.rateCents / 100).toFixed(0)}
           </div>
-          {!compact && lesson.notes && (
-            <div className="text-xs text-slate-500 italic mt-1">{lesson.notes}</div>
-          )}
+        )}
+        {!compact && lesson.notes && (
+          <div className="text-xs text-inkMuted italic mt-1">{lesson.notes}</div>
+        )}
+        <div className="mt-1.5">
+          <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
+            {meta.label}
+          </span>
         </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${meta.color}`}>
-          {meta.label}
-        </span>
+        {!compact && <StatusControls lessonId={lesson.id} status={lesson.status} />}
       </div>
-      {!compact && <StatusControls lessonId={lesson.id} status={lesson.status} />}
     </div>
   );
 }
@@ -101,7 +104,6 @@ export default async function CalendarPage({
   const todayStr = toDateStr(new Date());
   const anchorStr = toDateStr(anchor);
 
-  // Active students for the add-lesson form
   const activeStudents = await db
     .select({
       id: students.id,
@@ -144,18 +146,17 @@ export default async function CalendarPage({
       <div className="px-4 pt-6 pb-14 md:px-12 md:py-8">
         <ViewHeader view="day" anchor={anchorStr} todayStr={todayStr} />
 
-        {/* Date nav */}
         <div className="flex items-center gap-2 mb-2">
           <Link href={`/dashboard/calendar?view=day&date=${toDateStr(prevDay)}`}
-            className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 min-h-[44px] flex items-center">←</Link>
+            className="rounded border border-line px-3 py-2 text-sm text-inkMuted hover:bg-muted min-h-[44px] flex items-center">←</Link>
           <Link href={`/dashboard/calendar?view=day&date=${todayStr}`}
-            className={`rounded border px-3 py-2 text-sm min-h-[44px] flex items-center ${anchorStr === todayStr ? "border-brand-500 bg-brand-50 text-brand-600 font-medium" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            className={`rounded border px-3 py-2 text-sm min-h-[44px] flex items-center ${anchorStr === todayStr ? "border-accent bg-accentSoft text-accent font-medium" : "border-line text-inkMuted hover:bg-muted"}`}>
             Today
           </Link>
           <Link href={`/dashboard/calendar?view=day&date=${toDateStr(nextDay)}`}
-            className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 min-h-[44px] flex items-center">→</Link>
+            className="rounded border border-line px-3 py-2 text-sm text-inkMuted hover:bg-muted min-h-[44px] flex items-center">→</Link>
         </div>
-        <p className="text-slate-500 text-sm mb-6">{displayDate}</p>
+        <p className="text-inkMuted text-sm mb-6">{displayDate}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="md:col-span-3 space-y-3">
@@ -171,18 +172,16 @@ export default async function CalendarPage({
             )}
           </div>
 
-          {/* Add lesson panel */}
           <div id="add-lesson" className="md:col-span-2">
             <AddLessonForm students={activeStudents} defaultDate={anchorStr} />
           </div>
         </div>
 
-        {/* Mobile sticky CTA */}
         {activeStudents.length > 0 && (
-          <div className="fixed bottom-14 inset-x-0 z-10 md:hidden px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-slate-200">
+          <div className="fixed bottom-14 inset-x-0 z-10 md:hidden px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-line">
             <a
               href="#add-lesson"
-              className="flex w-full items-center justify-center rounded-md bg-brand-500 py-3 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+              className="flex w-full items-center justify-center rounded-md bg-accent py-3 text-sm font-medium text-white hover:bg-accentHover transition-colors"
             >
               + Schedule lesson
             </a>
@@ -218,10 +217,9 @@ export default async function CalendarPage({
     .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, weekStart), lt(lessons.startsAt, weekEnd)))
     .orderBy(asc(lessons.startsAt));
 
-  // Group by day
   const byDay: LessonRow[][] = Array.from({ length: 7 }, () => []);
   for (const lesson of weekLessons) {
-    const dayIndex = (new Date(lesson.startsAt).getDay() + 6) % 7; // Mon=0 … Sun=6
+    const dayIndex = (new Date(lesson.startsAt).getDay() + 6) % 7;
     byDay[dayIndex].push(lesson);
   }
 
@@ -231,17 +229,16 @@ export default async function CalendarPage({
     <div className="px-4 py-6 md:px-12 md:py-8">
       <ViewHeader view="week" anchor={anchorStr} todayStr={todayStr} />
 
-      {/* Week nav */}
       <div className="flex items-center gap-2 mb-6">
         <Link href={`/dashboard/calendar?view=week&date=${toDateStr(prevWeekStart)}`}
-          className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 min-h-[44px] flex items-center">←</Link>
+          className="rounded border border-line px-3 py-2 text-sm text-inkMuted hover:bg-muted min-h-[44px] flex items-center">←</Link>
         <Link href={`/dashboard/calendar?view=week&date=${todayStr}`}
-          className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 min-h-[44px] flex items-center">
+          className="rounded border border-line px-3 py-2 text-sm text-inkMuted hover:bg-muted min-h-[44px] flex items-center">
           This week
         </Link>
         <Link href={`/dashboard/calendar?view=week&date=${toDateStr(nextWeekStart)}`}
-          className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 min-h-[44px] flex items-center">→</Link>
-        <span className="text-sm text-slate-400 ml-2">
+          className="rounded border border-line px-3 py-2 text-sm text-inkMuted hover:bg-muted min-h-[44px] flex items-center">→</Link>
+        <span className="text-sm text-inkSubtle ml-2">
           {weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} –{" "}
           {new Date(weekEnd.getTime() - 1).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </span>
@@ -257,11 +254,11 @@ export default async function CalendarPage({
 
           return (
             <div key={i}>
-              <div className={`text-center mb-2 pb-2 border-b ${isToday ? "border-brand-500" : "border-slate-100"}`}>
-                <div className="text-xs text-slate-400">{DAY_NAMES[i]}</div>
+              <div className={`text-center mb-2 pb-2 border-b ${isToday ? "border-accent" : "border-line"}`}>
+                <div className="text-xs text-inkSubtle">{DAY_NAMES[i]}</div>
                 <Link
                   href={`/dashboard/calendar?view=day&date=${dayStr}`}
-                  className={`text-sm font-semibold ${isToday ? "text-brand-600" : "text-slate-700"} hover:text-brand-600`}
+                  className={`text-sm font-semibold ${isToday ? "text-accent" : "text-inkMuted"} hover:text-accent`}
                 >
                   {day.getDate()}
                 </Link>
@@ -270,7 +267,7 @@ export default async function CalendarPage({
                 {byDay[i].length === 0 ? (
                   <Link
                     href={`/dashboard/calendar?view=day&date=${dayStr}`}
-                    className="block text-center text-xs text-slate-300 hover:text-slate-400 py-2"
+                    className="block text-center text-xs text-inkSubtle hover:text-inkMuted py-2"
                   >
                     +
                   </Link>
@@ -294,19 +291,19 @@ export default async function CalendarPage({
 
           return (
             <div key={i}>
-              <div className={`flex items-center gap-2 mb-2 pb-1 border-b ${isToday ? "border-brand-500" : "border-slate-100"}`}>
+              <div className={`flex items-center gap-2 mb-2 pb-1 border-b ${isToday ? "border-accent" : "border-line"}`}>
                 <Link
                   href={`/dashboard/calendar?view=day&date=${dayStr}`}
-                  className={`text-sm font-semibold ${isToday ? "text-brand-600" : "text-slate-700"} hover:text-brand-600`}
+                  className={`text-sm font-semibold ${isToday ? "text-accent" : "text-inkMuted"} hover:text-accent`}
                 >
                   {DAY_NAMES[i]} {day.getDate()}
                 </Link>
-                {isToday && <span className="text-xs text-brand-500 font-medium">Today</span>}
+                {isToday && <span className="text-xs text-accent font-medium">Today</span>}
               </div>
               {dayLessons.length === 0 ? (
                 <Link
                   href={`/dashboard/calendar?view=day&date=${dayStr}`}
-                  className="block text-xs text-slate-300 hover:text-slate-400 py-1"
+                  className="block text-xs text-inkSubtle hover:text-inkMuted py-1"
                 >
                   No lessons — tap to add
                 </Link>
@@ -329,17 +326,17 @@ function ViewHeader({ view, anchor, todayStr }: { view: string; anchor: string; 
   const dateParam = anchor === todayStr ? "" : `&date=${anchor}`;
   return (
     <div className="flex items-center justify-between mb-4">
-      <h1 className="text-xl font-semibold text-slate-900">Calendar</h1>
-      <div className="flex rounded-md border border-slate-200 overflow-hidden text-sm">
+      <h1 className="text-3xl font-display tracking-tight text-ink">Calendar</h1>
+      <div className="flex rounded-md border border-line overflow-hidden text-sm">
         <Link
           href={`/dashboard/calendar?view=day${dateParam}`}
-          className={`px-3 py-2 min-h-[44px] flex items-center ${view === "day" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+          className={`px-3 py-2 min-h-[44px] flex items-center ${view === "day" ? "bg-ink text-white" : "bg-surface text-inkMuted hover:bg-muted"}`}
         >
           Day
         </Link>
         <Link
           href={`/dashboard/calendar?view=week${dateParam}`}
-          className={`hidden md:flex px-3 py-2 min-h-[44px] items-center ${view === "week" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+          className={`hidden md:flex px-3 py-2 min-h-[44px] items-center border-l border-line ${view === "week" ? "bg-ink text-white" : "bg-surface text-inkMuted hover:bg-muted"}`}
         >
           Week
         </Link>
@@ -355,44 +352,43 @@ function AddLessonForm({
   students: { id: string; name: string; defaultLessonMinutes: number; defaultRateCents: number }[];
   defaultDate: string;
 }) {
+  const inputCls = "w-full rounded-md border border-line px-2.5 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-accent";
+
   if (students.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Add lesson</h2>
-        <p className="text-sm text-slate-500">
-          <Link href="/dashboard/students/new" className="text-brand-500 underline">Add a student</Link> first.
+      <div className="bg-surface rounded-lg border border-line p-5">
+        <h2 className="text-sm font-semibold text-ink mb-3">Add lesson</h2>
+        <p className="text-sm text-inkMuted">
+          <Link href="/dashboard/students/new" className="text-accent underline">Add a student</Link> first.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 className="text-sm font-semibold text-slate-900 mb-4">Add one-off lesson</h2>
+    <div className="bg-surface rounded-lg border border-line p-5">
+      <h2 className="text-sm font-semibold text-ink mb-4">Add one-off lesson</h2>
       <form action={createLesson} className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Student</label>
-          <select name="studentId" required className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <label className="block text-xs font-medium text-inkMuted mb-1">Student</label>
+          <select name="studentId" required className={inputCls}>
             {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
-            <input name="date" type="date" required defaultValue={defaultDate}
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <label className="block text-xs font-medium text-inkMuted mb-1">Date</label>
+            <input name="date" type="date" required defaultValue={defaultDate} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
-            <input name="time" type="time" required defaultValue="16:00"
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <label className="block text-xs font-medium text-inkMuted mb-1">Time</label>
+            <input name="time" type="time" required defaultValue="16:00" className={inputCls} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Duration</label>
-            <select name="durationMinutes" defaultValue="30"
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <label className="block text-xs font-medium text-inkMuted mb-1">Duration</label>
+            <select name="durationMinutes" defaultValue="30" className={inputCls}>
               <option value="30">30 min</option>
               <option value="45">45 min</option>
               <option value="60">60 min</option>
@@ -400,17 +396,16 @@ function AddLessonForm({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Rate ($)</label>
-            <input name="rateDollars" type="number" min="0" step="0.01" defaultValue="40"
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <label className="block text-xs font-medium text-inkMuted mb-1">Rate ($)</label>
+            <input name="rateDollars" type="number" min="0" step="0.01" defaultValue="40" className={inputCls} />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Notes (optional)</label>
+          <label className="block text-xs font-medium text-inkMuted mb-1">Notes (optional)</label>
           <textarea name="notes" rows={2} placeholder="Worked on scales…"
-            className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+            className={`${inputCls} placeholder:text-inkSubtle resize-none`} />
         </div>
-        <SubmitButton className="w-full rounded-md bg-cta py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity">
+        <SubmitButton className="w-full rounded-md bg-accent py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
           Add lesson
         </SubmitButton>
       </form>

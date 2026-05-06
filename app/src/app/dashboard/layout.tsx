@@ -16,19 +16,19 @@ export default async function DashboardLayout({
   const studio = await getOrCreateStudio(user.id, user.email ?? undefined, user.name);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden md:flex w-52 bg-white border-r border-slate-200 flex-col fixed inset-y-0 z-10">
-        <div className="px-4 py-5 border-b border-slate-100">
-          <div className="text-lg font-semibold tracking-tight">
-            Cadence<span className="text-brand-500">.</span>
+    <div className="flex min-h-screen bg-paper">
+      <aside className="hidden md:flex w-60 bg-surface border-r border-line flex-col fixed inset-y-0 z-10">
+        <div className="px-4 py-5 border-b border-line">
+          <div className="text-lg font-display tracking-tight text-ink">
+            Cadence<span className="text-accent">.</span>
           </div>
-          <div className="text-xs text-slate-400 mt-0.5 truncate">{studio.name}</div>
+          <div className="text-xs text-inkSubtle mt-0.5 truncate">{studio.name}</div>
         </div>
 
         <SidebarNav />
 
-        <div className="px-4 py-4 border-t border-slate-100">
-          <div className="text-xs text-slate-400 truncate mb-2">{session.user.email}</div>
+        <div className="px-4 py-4 border-t border-line">
+          <div className="text-xs text-inkSubtle truncate mb-2">{session.user.email}</div>
           <form
             action={async () => {
               "use server";
@@ -37,7 +37,7 @@ export default async function DashboardLayout({
           >
             <button
               type="submit"
-              className="text-xs text-slate-400 hover:text-slate-700 transition-colors"
+              className="text-xs text-inkSubtle hover:text-ink transition-colors"
             >
               Sign out
             </button>
@@ -45,7 +45,7 @@ export default async function DashboardLayout({
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-52 pb-16 md:pb-0">{children}</main>
+      <main className="flex-1 md:ml-60 pb-16 md:pb-0">{children}</main>
       <MobileBottomNav />
     </div>
   );
