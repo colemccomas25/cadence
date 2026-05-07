@@ -53,41 +53,35 @@ type LessonRow = {
 function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: boolean }) {
   const meta = STATUS_META[lesson.status] ?? STATUS_META.scheduled;
   return (
-    <div className="bg-surface rounded-md border border-line overflow-hidden flex">
-      <div className={`w-1 flex-shrink-0 ${meta.bar}`} />
-      <div className="flex-1 px-3 py-2.5 min-w-0">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-inkSubtle mb-0.5">
-          {formatTime(new Date(lesson.startsAt))}
-        </div>
-        <div className={`font-medium text-ink leading-tight ${compact ? "text-sm truncate" : "text-base"}`}>
-          {lesson.studentName}
-        </div>
-        {!compact && lesson.studentInstrument && (
-          <div className="text-xs text-inkSubtle">{lesson.studentInstrument}</div>
-        )}
-        {!compact && (
-          <div className="text-xs text-inkSubtle font-mono mt-0.5">
-            {lesson.durationMinutes} min · ${(lesson.rateCents / 100).toFixed(0)}
+    <div className="bg-surface rounded-md border border-line overflow-hidden hover:border-lineStrong transition-colors">
+      <Link href={`/dashboard/calendar/lessons/${lesson.id}/edit`} className="flex">
+        <div className={`w-1 flex-shrink-0 ${meta.bar}`} />
+        <div className="flex-1 px-3 py-2.5 min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-inkSubtle mb-0.5">
+            {formatTime(new Date(lesson.startsAt))}
           </div>
-        )}
-        {!compact && lesson.notes && (
-          <div className="text-xs text-inkMuted italic mt-1">{lesson.notes}</div>
-        )}
-        <div className="mt-1.5 flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
-            {meta.label}
-          </span>
-          {!compact && (
-            <Link
-              href={`/dashboard/calendar/lessons/${lesson.id}/edit`}
-              className="text-xs text-inkSubtle hover:text-accent transition-colors"
-            >
-              Edit
-            </Link>
+          <div className={`font-medium text-ink leading-tight ${compact ? "text-sm truncate" : "text-base"}`}>
+            {lesson.studentName}
+          </div>
+          {!compact && lesson.studentInstrument && (
+            <div className="text-xs text-inkSubtle">{lesson.studentInstrument}</div>
           )}
+          {!compact && (
+            <div className="text-xs text-inkSubtle font-mono mt-0.5">
+              {lesson.durationMinutes} min · ${(lesson.rateCents / 100).toFixed(0)}
+            </div>
+          )}
+          {!compact && lesson.notes && (
+            <div className="text-xs text-inkMuted italic mt-1">{lesson.notes}</div>
+          )}
+          <div className="mt-1.5">
+            <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
+              {meta.label}
+            </span>
+          </div>
         </div>
-        {!compact && <StatusControls lessonId={lesson.id} status={lesson.status} />}
-      </div>
+      </Link>
+      {!compact && <StatusControls lessonId={lesson.id} status={lesson.status} />}
     </div>
   );
 }

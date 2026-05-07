@@ -62,10 +62,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
         <span className="text-inkSubtle">/</span>
         <h1 className="text-3xl font-display tracking-tight text-ink">{student.name}</h1>
       </div>
-      <p className="text-sm text-inkMuted mb-8 font-mono">
-        {student.instrument ?? "No instrument"} · {student.defaultLessonMinutes} min ·{" "}
-        ${(student.defaultRateCents / 100).toFixed(0)}/lesson
-      </p>
+      {student.instrument && (
+        <p className="text-sm text-inkMuted mb-8">{student.instrument}</p>
+      )}
 
       {/* Recurring schedule */}
       <section className="mb-8">

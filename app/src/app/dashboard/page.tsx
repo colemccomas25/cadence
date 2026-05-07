@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
 import { students, lessons, lessonTemplates, parentContacts, invoices } from "@/db/schema";
-import { eq, and, gte, lt, count, isNull, or, asc } from "drizzle-orm";
+import { eq, and, gte, lt, count, isNull, or, ne, asc } from "drizzle-orm";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 
@@ -18,45 +18,67 @@ export default async function DashboardPage() {
   const user = session.user as { id?: string; email?: string | null; name?: string | null };
   const studio = await getOrCreateStudio(user.id, user.email ?? undefined, user.name);
 
-  const [{ value: studentCount }] = await db
-    .select({ value: count() })
-    .from(students)
-    .where(and(eq(students.studioId, studio.id), isNull(students.archivedAt)));
-
-  const today = new Date();
+  const now = new Date();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
-
   const weekEnd = new Date(today);
   weekEnd.setDate(today.getDate() + 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const todaysLessons = await db
-    .select({ id: lessons.id })
-    .from(lessons)
-    .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, tomorrow)));
+  const [
+    [{ value: studentCount }],
+    todaysLessonRows,
+    [{ value: weekLessonCount }],
+    earnedRows,
+    allInvoiceRows,
+  ] = await Promise.all([
+    db.select({ value: count() }).from(students)
+      .where(and(eq(students.studioId, studio.id), isNull(students.archivedAt))),
 
-  const [{ value: weekLessonCount }] = await db
-    .select({ value: count() })
-    .from(lessons)
-    .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, weekEnd)));
+    db.select({ id: lessons.id }).from(lessons)
+      .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, tomorrow))),
 
-  const outstandingRows = await db
-    .select({ totalCents: invoices.totalCents })
-    .from(invoices)
-    .where(and(
-      eq(invoices.studioId, studio.id),
-      or(eq(invoices.status, "draft"), eq(invoices.status, "sent")),
-    ));
-  const outstandingCents = outstandingRows.reduce((s, r) => s + r.totalCents, 0);
+    db.select({ value: count() }).from(lessons)
+      .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, weekEnd))),
 
-  const now = new Date();
+    // Held lessons this month — with invoice status to identify unpaid
+    db.select({ rateCents: lessons.rateCents, invoiceStatus: invoices.status })
+      .from(lessons)
+      .leftJoin(invoices, eq(lessons.invoiceId, invoices.id))
+      .where(and(
+        eq(lessons.studioId, studio.id),
+        eq(lessons.status, "held"),
+        gte(lessons.startsAt, monthStart),
+        lt(lessons.startsAt, monthEnd),
+      )),
+
+    // All non-void invoices for collection rate
+    db.select({ totalCents: invoices.totalCents, status: invoices.status })
+      .from(invoices)
+      .where(and(eq(invoices.studioId, studio.id), ne(invoices.status, "void"))),
+  ]);
+
+  // Owed this month = held lessons this month not on a paid invoice
+  const owedThisMonthCents = earnedRows
+    .filter((r) => r.invoiceStatus !== "paid")
+    .reduce((s, r) => s + r.rateCents, 0);
+
+  // Collection rate = paid / all invoiced
+  const totalInvoicedCents = allInvoiceRows.reduce((s, r) => s + r.totalCents, 0);
+  const paidCents = allInvoiceRows.filter((r) => r.status === "paid").reduce((s, r) => s + r.totalCents, 0);
+  const collectionRate = totalInvoicedCents > 0
+    ? Math.round((paidCents / totalInvoicedCents) * 100)
+    : null;
+
+  // Next upcoming lessons
   const nextLessonRows = await db
     .select({
       id: lessons.id,
       startsAt: lessons.startsAt,
       durationMinutes: lessons.durationMinutes,
-      rateCents: lessons.rateCents,
       studentName: students.name,
       studentInstrument: students.instrument,
     })
@@ -70,23 +92,21 @@ export default async function DashboardPage() {
     .orderBy(asc(lessons.startsAt))
     .limit(3);
 
-  const hour = new Date().getHours();
+  const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user.name?.split(" ")[0] ?? "there";
 
+  // Get-started checklist
   const [{ value: templateCount }] = await db
-    .select({ value: count() })
-    .from(lessonTemplates)
+    .select({ value: count() }).from(lessonTemplates)
     .where(and(eq(lessonTemplates.studioId, studio.id), eq(lessonTemplates.active, true)));
 
   const [{ value: parentCount }] = await db
-    .select({ value: count() })
-    .from(parentContacts)
+    .select({ value: count() }).from(parentContacts)
     .where(eq(parentContacts.studioId, studio.id));
 
   const [{ value: invoiceCount }] = await db
-    .select({ value: count() })
-    .from(invoices)
+    .select({ value: count() }).from(invoices)
     .where(eq(invoices.studioId, studio.id));
 
   const steps = [
@@ -103,7 +123,7 @@ export default async function DashboardPage() {
         {greeting}, {firstName}
       </h1>
       <p className="text-inkSubtle text-sm mb-8">
-        {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
       </p>
 
       {studentCount === 0 ? (
@@ -115,32 +135,31 @@ export default async function DashboardPage() {
         />
       ) : (
         <>
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {/* Top row: counts */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 max-w-2xl">
+            <StatCard value={studentCount} label="Students" href="/dashboard/students" />
+            <StatCard value={todaysLessonRows.length} label="Lessons today" href="/dashboard/calendar" />
+            <StatCard value={weekLessonCount} label="Lessons this week" href="/dashboard/calendar?view=week" />
+          </div>
+
+          {/* Bottom row: money */}
+          <div className="grid grid-cols-2 gap-4 mb-8 max-w-sm">
             <StatCard
-              value={studentCount}
-              label="Active students"
-              href="/dashboard/students"
-            />
-            <StatCard
-              value={todaysLessons.length}
-              label="Lessons today"
-              href={`/dashboard/calendar?view=day`}
-            />
-            <StatCard
-              value={weekLessonCount}
-              label="This week"
-              href="/dashboard/calendar?view=week"
-            />
-            <StatCard
-              value={outstandingCents > 0 ? `$${(outstandingCents / 100).toFixed(0)}` : "—"}
-              label="Outstanding"
+              value={owedThisMonthCents > 0 ? `$${(owedThisMonthCents / 100).toFixed(0)}` : "—"}
+              label="Owed this month"
               href="/dashboard/invoices"
-              muted={outstandingCents === 0}
+              muted={owedThisMonthCents === 0}
+            />
+            <StatCard
+              value={collectionRate !== null ? `${collectionRate}%` : "—"}
+              label="Collected"
+              href="/dashboard/invoices"
+              muted={collectionRate === null}
+              accent={collectionRate !== null && collectionRate >= 80}
             />
           </div>
 
-          {/* Next lessons */}
+          {/* Coming up */}
           {nextLessonRows.length > 0 && (
             <div className="mb-8 max-w-lg">
               <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
@@ -149,7 +168,7 @@ export default async function DashboardPage() {
               <div className="space-y-2">
                 {nextLessonRows.map((l) => {
                   const d = new Date(l.startsAt);
-                  const isToday = d.toDateString() === new Date().toDateString();
+                  const isToday = d.toDateString() === now.toDateString();
                   const dayLabel = isToday
                     ? "Today"
                     : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -183,13 +202,9 @@ export default async function DashboardPage() {
               <ol className="space-y-3">
                 {steps.map((step, i) => (
                   <li key={step.label} className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-semibold flex-shrink-0 ${
-                        step.done
-                          ? "bg-accentSoft text-accent"
-                          : "bg-muted text-inkSubtle"
-                      }`}
-                    >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-semibold flex-shrink-0 ${
+                      step.done ? "bg-accentSoft text-accent" : "bg-muted text-inkSubtle"
+                    }`}>
                       {step.done ? "✓" : i + 1}
                     </div>
                     {step.done ? (
@@ -215,18 +230,20 @@ function StatCard({
   label,
   href,
   muted,
+  accent,
 }: {
   value: number | string;
   label: string;
   href: string;
   muted?: boolean;
+  accent?: boolean;
 }) {
   return (
     <Link
       href={href}
       className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
     >
-      <div className={`text-3xl font-bold font-mono ${muted ? "text-inkSubtle" : "text-ink"}`}>
+      <div className={`text-3xl font-bold font-mono ${accent ? "text-accent" : muted ? "text-inkSubtle" : "text-ink"}`}>
         {value}
       </div>
       <div className="text-sm text-inkMuted mt-1">{label}</div>
