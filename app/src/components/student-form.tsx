@@ -12,8 +12,8 @@ import { createStudent } from "@/actions/students";
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
   instrument: z.string().optional(),
-  durationMinutes: z.coerce.number().int().min(1),
-  rateDollars: z.coerce.number().min(0, "Rate must be 0 or more"),
+  parentName: z.string().optional(),
+  parentEmail: z.union([z.string().email("Enter a valid email"), z.literal("")]).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -29,7 +29,6 @@ export function StudentCreateForm() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: "onBlur",
-    defaultValues: { durationMinutes: 30, rateDollars: 40 },
   });
 
   const onSubmit = (values: FormValues) => {
@@ -68,30 +67,26 @@ export function StudentCreateForm() {
         <input {...register("instrument")} placeholder="Piano" className={inputClass} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Default duration</label>
-          <select {...register("durationMinutes")} className={inputClass}>
-            <option value="30">30 min</option>
-            <option value="45">45 min</option>
-            <option value="60">60 min</option>
-            <option value="90">90 min</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Rate per lesson ($)
-          </label>
-          <input
-            {...register("rateDollars")}
-            type="number"
-            min="0"
-            step="0.01"
-            aria-invalid={!!errors.rateDollars}
-            className={`${inputClass} ${errors.rateDollars ? "border-red-400 focus:ring-red-400" : ""}`}
-          />
-          {errors.rateDollars && <p className={errorClass}>{errors.rateDollars.message}</p>}
+      <div className="border-t border-slate-100 pt-5">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+          Parent / billing contact
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Parent name</label>
+            <input {...register("parentName")} placeholder="Sarah Chen" className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Parent email</label>
+            <input
+              {...register("parentEmail")}
+              type="email"
+              placeholder="sarah@example.com"
+              aria-invalid={!!errors.parentEmail}
+              className={`${inputClass} ${errors.parentEmail ? "border-red-400 focus:ring-red-400" : ""}`}
+            />
+            {errors.parentEmail && <p className={errorClass}>{errors.parentEmail.message}</p>}
+          </div>
         </div>
       </div>
 

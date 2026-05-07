@@ -6,7 +6,6 @@ import { invoices, parentContacts } from "@/db/schema";
 import { eq, and, gte, lt } from "drizzle-orm";
 import Link from "next/link";
 import { generateInvoices, voidInvoice } from "@/actions/invoices";
-import { EmptyState } from "@/components/empty-state";
 import { SubmitButton } from "@/components/submit-button";
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -74,8 +73,12 @@ export default async function InvoicesPage({
     )
     .orderBy(parentContacts.name);
 
+  const collectedCents = rows.filter((r) => r.status === "paid").reduce((s, r) => s + r.totalCents, 0);
+  const outstandingCents = rows.filter((r) => r.status === "draft" || r.status === "sent").reduce((s, r) => s + r.totalCents, 0);
+
   return (
     <div className="px-4 pt-6 pb-14 md:px-12 md:py-8">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-display tracking-tight text-ink">Invoices</h1>
       </div>
@@ -92,153 +95,141 @@ export default async function InvoicesPage({
       {/* Alerts */}
       {paid && <Banner color="green">Payment received — invoice marked as paid.</Banner>}
       {exists && <Banner color="amber">Invoices already exist for this month.</Banner>}
-      {empty && <Banner color="amber">No held lessons found for this month.</Banner>}
+      {empty && <Banner color="amber">No held lessons found for this month. Mark lessons as &ldquo;held&rdquo; on the calendar first.</Banner>}
       {noparents && <Banner color="amber">No students have parent contacts. Add parents on each student&apos;s page first.</Banner>}
       {sent && <Banner color="green">Invoice emailed to the parent with a payment link.</Banner>}
 
-      {/* Invoice list */}
       {rows.length === 0 ? (
-        <div className="mb-6">
-          <EmptyState
-            title="Invoices appear here on the 1st of each month."
-            body="Or click below to send a one-off invoice for last month's lessons right now."
-            cta="Generate now"
-            ctaHref="#generate"
-          />
-        </div>
+        <>
+          <div className="bg-surface rounded-lg border border-line p-6 text-center mb-6 max-w-lg">
+            <p className="text-sm font-medium text-ink mb-1">No invoices for {monthLabel(ym)}</p>
+            <p className="text-xs text-inkMuted mb-4">
+              Invoices are auto-generated on the 1st of each month, or you can generate them manually below.
+            </p>
+            <GenerateForm ym={ym} inline />
+          </div>
+        </>
       ) : (
-        <div className="mb-6">
-          {/* Desktop table */}
-          <div className="hidden md:block bg-surface rounded-lg border border-line overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left bg-muted">
-                  <th className="px-4 py-3 font-medium text-inkMuted">Parent</th>
-                  <th className="px-4 py-3 font-medium text-inkMuted">Amount</th>
-                  <th className="px-4 py-3 font-medium text-inkMuted">Status</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {rows.map((inv) => {
-                  const meta = STATUS_META[inv.status] ?? STATUS_META.draft;
-                  return (
-                    <tr key={inv.id} className="hover:bg-muted transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-ink">{inv.parentName ?? inv.parentEmail}</div>
-                        <div className="text-xs text-inkSubtle">{inv.parentEmail}</div>
-                      </td>
-                      <td className="px-4 py-3 font-medium font-mono text-ink">
-                        ${(inv.totalCents / 100).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>{meta.label}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          {(inv.status === "draft" || inv.status === "sent") && (
-                            <Link
-                              href={`/api/stripe/checkout/invoice?invoiceId=${inv.id}`}
-                              className="text-xs text-accent hover:text-accentHover font-medium"
-                            >
-                              {inv.status === "draft" ? "Send invoice" : "Resend"}
-                            </Link>
-                          )}
-                          {inv.status === "draft" && (
-                            <form action={voidInvoice.bind(null, inv.id)}>
-                              <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">
-                                Void
-                              </button>
-                            </form>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="px-4 py-3 border-t border-line flex justify-between text-sm">
-              <span className="text-inkMuted">Total</span>
-              <span className="font-semibold font-mono text-ink">
-                ${(rows.reduce((s, r) => s + r.totalCents, 0) / 100).toFixed(2)}
-              </span>
-            </div>
+        <>
+          {/* Summary row */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 max-w-lg">
+            <SummaryCard label="Collected" value={`$${(collectedCents / 100).toFixed(2)}`} accent={collectedCents > 0} />
+            <SummaryCard label="Outstanding" value={outstandingCents > 0 ? `$${(outstandingCents / 100).toFixed(2)}` : "—"} />
+            <SummaryCard label="Total invoiced" value={`$${(rows.reduce((s, r) => s + r.totalCents, 0) / 100).toFixed(2)}`} />
           </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {rows.map((inv) => {
-              const meta = STATUS_META[inv.status] ?? STATUS_META.draft;
-              return (
-                <div key={inv.id} className="bg-surface rounded-lg border border-line px-4 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-ink truncate">
-                        {inv.parentName ?? inv.parentEmail}
-                      </div>
-                      <div className="text-sm text-inkMuted mt-0.5">{inv.parentEmail}</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-base font-semibold font-mono text-ink">
+          {/* Desktop table */}
+          <div className="mb-6">
+            <div className="hidden md:block bg-surface rounded-lg border border-line overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left bg-muted">
+                    <th className="px-4 py-3 font-medium text-inkMuted">Parent</th>
+                    <th className="px-4 py-3 font-medium text-inkMuted">Amount</th>
+                    <th className="px-4 py-3 font-medium text-inkMuted">Status</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {rows.map((inv) => {
+                    const meta = STATUS_META[inv.status] ?? STATUS_META.draft;
+                    return (
+                      <tr key={inv.id} className="hover:bg-muted transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-ink">{inv.parentName ?? inv.parentEmail}</div>
+                          <div className="text-xs text-inkSubtle">{inv.parentEmail}</div>
+                        </td>
+                        <td className="px-4 py-3 font-medium font-mono text-ink">
                           ${(inv.totalCents / 100).toFixed(2)}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
-                          {meta.label}
-                        </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>{meta.label}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            {(inv.status === "draft" || inv.status === "sent") && (
+                              <a
+                                href={`/api/stripe/checkout/invoice?invoiceId=${inv.id}`}
+                                className="text-xs text-accent hover:text-accentHover font-medium"
+                              >
+                                {inv.status === "draft" ? "Send invoice" : "Resend"}
+                              </a>
+                            )}
+                            {inv.status === "draft" && (
+                              <form action={voidInvoice.bind(null, inv.id)}>
+                                <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">
+                                  Void
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {rows.map((inv) => {
+                const meta = STATUS_META[inv.status] ?? STATUS_META.draft;
+                return (
+                  <div key={inv.id} className="bg-surface rounded-lg border border-line px-4 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-ink truncate">
+                          {inv.parentName ?? inv.parentEmail}
+                        </div>
+                        <div className="text-sm text-inkMuted mt-0.5">{inv.parentEmail}</div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-base font-semibold font-mono text-ink">
+                            ${(inv.totalCents / 100).toFixed(2)}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
+                            {meta.label}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1">
-                      {(inv.status === "draft" || inv.status === "sent") && (
-                        <Link
-                          href={`/api/stripe/checkout/invoice?invoiceId=${inv.id}`}
-                          className="min-h-[48px] flex items-center px-3 text-sm text-accent hover:text-accentHover font-medium"
-                        >
-                          {inv.status === "draft" ? "Send" : "Resend"}
-                        </Link>
-                      )}
-                      {inv.status === "draft" && (
-                        <form action={voidInvoice.bind(null, inv.id)}>
-                          <button
-                            type="submit"
-                            className="min-h-[48px] flex items-center px-3 text-sm text-inkSubtle hover:text-danger transition-colors"
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        {(inv.status === "draft" || inv.status === "sent") && (
+                          <a
+                            href={`/api/stripe/checkout/invoice?invoiceId=${inv.id}`}
+                            className="min-h-[48px] flex items-center px-3 text-sm text-accent hover:text-accentHover font-medium"
                           >
-                            Void
-                          </button>
-                        </form>
-                      )}
+                            {inv.status === "draft" ? "Send" : "Resend"}
+                          </a>
+                        )}
+                        {inv.status === "draft" && (
+                          <form action={voidInvoice.bind(null, inv.id)}>
+                            <button
+                              type="submit"
+                              className="min-h-[48px] flex items-center px-3 text-sm text-inkSubtle hover:text-danger transition-colors"
+                            >
+                              Void
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            <div className="flex justify-between px-1 pt-2 text-sm">
-              <span className="text-inkMuted">Total</span>
-              <span className="font-semibold font-mono text-ink">
-                ${(rows.reduce((s, r) => s + r.totalCents, 0) / 100).toFixed(2)}
-              </span>
+                );
+              })}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Generate form */}
-      <div id="generate" className="bg-surface rounded-lg border border-line p-5 md:max-w-sm">
-        <h2 className="text-sm font-semibold text-ink mb-3">Generate invoices</h2>
-        <p className="text-xs text-inkMuted mb-4">
-          Creates one invoice per parent from all held lessons in the selected month.
-        </p>
-        <form action={generateInvoices} className="flex gap-2">
-          <input
-            name="yearMonth"
-            type="month"
-            defaultValue={ym}
-            className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-          <SubmitButton className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
-            Generate
-          </SubmitButton>
-        </form>
-      </div>
+          {/* Generate more invoices */}
+          <details className="bg-surface rounded-lg border border-line p-5 md:max-w-sm">
+            <summary className="text-sm font-semibold text-ink cursor-pointer select-none">
+              Generate invoices for another month
+            </summary>
+            <div className="mt-4">
+              <GenerateForm ym={ym} />
+            </div>
+          </details>
+        </>
+      )}
 
       {/* Mobile sticky CTA */}
       <div className="fixed bottom-14 inset-x-0 z-10 md:hidden px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-line">
@@ -249,6 +240,36 @@ export default async function InvoicesPage({
           </SubmitButton>
         </form>
       </div>
+    </div>
+  );
+}
+
+function GenerateForm({ ym, inline }: { ym: string; inline?: boolean }) {
+  return (
+    <form action={generateInvoices} className={inline ? "flex gap-2" : "flex gap-2"}>
+      {!inline && (
+        <p className="text-xs text-inkMuted mb-3">
+          Creates one invoice per parent from all held lessons in the selected month.
+        </p>
+      )}
+      <input
+        name="yearMonth"
+        type="month"
+        defaultValue={ym}
+        className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+      />
+      <SubmitButton className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
+        Generate
+      </SubmitButton>
+    </form>
+  );
+}
+
+function SummaryCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="bg-surface rounded-lg border border-line px-4 py-3">
+      <div className={`text-lg font-bold font-mono ${accent ? "text-accent" : "text-ink"}`}>{value}</div>
+      <div className="text-xs text-inkMuted mt-0.5">{label}</div>
     </div>
   );
 }

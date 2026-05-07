@@ -17,7 +17,7 @@ export default function HomePage() {
         {/* Hero */}
         <section className="text-center mb-24 pt-8">
           <h1 className="text-6xl md:text-7xl font-display tracking-tight leading-[1.05] text-ink mb-6">
-            Studio software for private music teachers.
+            Run your music studio without the busywork.
           </h1>
           <p className="text-lg md:text-xl text-inkMuted max-w-xl mx-auto mb-8 leading-relaxed">
             Cadence handles your recurring weekly lessons, monthly invoices, and parent
@@ -146,15 +146,13 @@ export default function HomePage() {
           <div className="max-w-2xl mx-auto space-y-6">
             {[
               ["Can I import my students from a spreadsheet?",
-                "Yes. Upload a CSV with name, parent email, instrument, and rate — Cadence handles the rest."],
-              ["What happens if I have more than 5 students on the free plan?",
-                "You won't be charged automatically. Your first 5 students stay active; extras are paused until you upgrade or archive someone."],
+                "Yes. Upload a CSV with name, parent email, instrument, and rate — Cadence handles the rest in under 2 minutes."],
               ["Do you charge fees on payments?",
                 "No. You pay Stripe's standard 2.9% + 30¢ directly — Cadence takes nothing on top. This is rare in our category."],
               ["Will you raise prices on me later?",
-                "Your monthly price is locked for as long as you stay subscribed. Price changes only apply to new customers."],
-              ["What about make-up lessons and cancellation policies?",
-                "Cadence supports the most common rules: free 24h+ cancel, charge for late cancel, credit make-up to next invoice. You set the policy per student."],
+                "Your price is locked for as long as you stay subscribed. Price increases only ever apply to new customers."],
+              ["Can I cancel anytime?",
+                "Yes. Cancel from your account at any moment. You keep full access until the end of your billing period — no proration, no penalty."],
               ["Can I get my data out?",
                 "Always. Export students, lessons, and invoices to CSV at any time. No lock-in."],
             ].map(([q, a]) => (

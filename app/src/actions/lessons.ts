@@ -51,6 +51,37 @@ export async function createLesson(formData: FormData) {
   redirect(`/dashboard/calendar?date=${date}`);
 }
 
+export async function updateLesson(formData: FormData) {
+  const studio = await getStudio();
+
+  const lessonId = formData.get("lessonId") as string;
+  const date = formData.get("date") as string;
+  const time = formData.get("time") as string;
+  const durationMinutes = parseInt(formData.get("durationMinutes") as string, 10) || 30;
+  const rateRaw = parseFloat(formData.get("rateDollars") as string) || 0;
+  const rateCents = Math.round(rateRaw * 100);
+  const notes = (formData.get("notes") as string | null)?.trim() || null;
+
+  if (!lessonId || !date || !time) return;
+
+  const [lesson] = await db
+    .select({ id: lessons.id, startsAt: lessons.startsAt })
+    .from(lessons)
+    .where(and(eq(lessons.id, lessonId), eq(lessons.studioId, studio.id)))
+    .limit(1);
+
+  if (!lesson) return;
+
+  const startsAt = new Date(`${date}T${time}:00`);
+
+  await db
+    .update(lessons)
+    .set({ startsAt, durationMinutes, rateCents, notes })
+    .where(eq(lessons.id, lessonId));
+
+  redirect(`/dashboard/calendar?view=day&date=${date}`);
+}
+
 export async function updateLessonStatus(lessonId: string, status: "held" | "cancelled_by_teacher" | "cancelled_by_student_paid" | "cancelled_by_student_unpaid" | "scheduled") {
   const studio = await getStudio();
 

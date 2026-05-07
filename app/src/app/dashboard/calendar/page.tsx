@@ -73,10 +73,18 @@ function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: 
         {!compact && lesson.notes && (
           <div className="text-xs text-inkMuted italic mt-1">{lesson.notes}</div>
         )}
-        <div className="mt-1.5">
+        <div className="mt-1.5 flex items-center gap-2">
           <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
             {meta.label}
           </span>
+          {!compact && (
+            <Link
+              href={`/dashboard/calendar/lessons/${lesson.id}/edit`}
+              className="text-xs text-inkSubtle hover:text-accent transition-colors"
+            >
+              Edit
+            </Link>
+          )}
         </div>
         {!compact && <StatusControls lessonId={lesson.id} status={lesson.status} />}
       </div>

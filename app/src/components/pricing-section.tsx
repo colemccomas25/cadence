@@ -62,21 +62,6 @@ const COMPARISON: { feature: string; starter: boolean | string; solo: boolean | 
   { feature: "Priority support",    starter: false, solo: false, studio: true },
 ];
 
-const FAQS = [
-  {
-    q: "Can I cancel anytime?",
-    a: "Yes. Cancel from your settings page at any moment. You keep full access until the end of your billing period — no proration, no penalty.",
-  },
-  {
-    q: "What's your refund policy?",
-    a: "If you're not happy in the first 30 days, email me and I'll refund you in full. No questions asked, by reply email.",
-  },
-  {
-    q: "Will you raise prices on me?",
-    a: "Your price is locked for as long as you stay subscribed. Price increases only ever apply to new customers.",
-  },
-];
-
 function Cell({ value }: { value: boolean | string }) {
   if (value === true) return <span className="text-accent font-semibold">✓</span>;
   if (value === false) return <span className="text-inkSubtle">—</span>;
@@ -200,15 +185,6 @@ export function PricingSection() {
         </table>
       </div>
 
-      {/* Pricing FAQs */}
-      <div className="max-w-2xl mx-auto space-y-6">
-        {FAQS.map(({ q, a }) => (
-          <div key={q} className="border-b border-line pb-6">
-            <h3 className="font-medium text-ink mb-2">{q}</h3>
-            <p className="text-inkMuted text-sm leading-relaxed">{a}</p>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }

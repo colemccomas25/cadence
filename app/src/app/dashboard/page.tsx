@@ -3,9 +3,13 @@ import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
 import { students, lessons, lessonTemplates, parentContacts, invoices } from "@/db/schema";
-import { eq, and, gte, lt, count, isNull } from "drizzle-orm";
+import { eq, and, gte, lt, count, isNull, sum, or, asc } from "drizzle-orm";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -24,10 +28,47 @@ export default async function DashboardPage() {
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
+  const weekEnd = new Date(today);
+  weekEnd.setDate(today.getDate() + 7);
+
   const todaysLessons = await db
     .select({ id: lessons.id })
     .from(lessons)
     .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, tomorrow)));
+
+  const [{ value: weekLessonCount }] = await db
+    .select({ value: count() })
+    .from(lessons)
+    .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, today), lt(lessons.startsAt, weekEnd)));
+
+  const outstandingRows = await db
+    .select({ totalCents: invoices.totalCents })
+    .from(invoices)
+    .where(and(
+      eq(invoices.studioId, studio.id),
+      or(eq(invoices.status, "draft"), eq(invoices.status, "sent")),
+    ));
+  const outstandingCents = outstandingRows.reduce((s, r) => s + r.totalCents, 0);
+
+  const now = new Date();
+  const nextLessonRows = await db
+    .select({
+      id: lessons.id,
+      startsAt: lessons.startsAt,
+      durationMinutes: lessons.durationMinutes,
+      rateCents: lessons.rateCents,
+      studentName: students.name,
+      studentInstrument: students.instrument,
+    })
+    .from(lessons)
+    .innerJoin(students, eq(lessons.studentId, students.id))
+    .where(and(
+      eq(lessons.studioId, studio.id),
+      gte(lessons.startsAt, now),
+      eq(lessons.status, "scheduled"),
+    ))
+    .orderBy(asc(lessons.startsAt))
+    .limit(3);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -74,23 +115,68 @@ export default async function DashboardPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 max-w-lg mb-8">
-            <Link
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard
+              value={studentCount}
+              label="Active students"
               href="/dashboard/students"
-              className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
-            >
-              <div className="text-3xl font-bold font-mono text-ink">{studentCount}</div>
-              <div className="text-sm text-inkMuted mt-1">Active students</div>
-            </Link>
-            <Link
-              href="/dashboard/calendar"
-              className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
-            >
-              <div className="text-3xl font-bold font-mono text-ink">{todaysLessons.length}</div>
-              <div className="text-sm text-inkMuted mt-1">Lessons today</div>
-            </Link>
+            />
+            <StatCard
+              value={todaysLessons.length}
+              label="Lessons today"
+              href={`/dashboard/calendar?view=day`}
+            />
+            <StatCard
+              value={weekLessonCount}
+              label="This week"
+              href="/dashboard/calendar?view=week"
+            />
+            <StatCard
+              value={outstandingCents > 0 ? `$${(outstandingCents / 100).toFixed(0)}` : "—"}
+              label="Outstanding"
+              href="/dashboard/invoices"
+              muted={outstandingCents === 0}
+            />
           </div>
 
+          {/* Next lessons */}
+          {nextLessonRows.length > 0 && (
+            <div className="mb-8 max-w-lg">
+              <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
+                Coming up
+              </h2>
+              <div className="space-y-2">
+                {nextLessonRows.map((l) => {
+                  const d = new Date(l.startsAt);
+                  const isToday = d.toDateString() === new Date().toDateString();
+                  const dayLabel = isToday
+                    ? "Today"
+                    : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                  return (
+                    <Link
+                      key={l.id}
+                      href={`/dashboard/calendar?view=day&date=${d.toISOString().split("T")[0]}`}
+                      className="flex items-center justify-between bg-surface rounded-lg border border-line px-4 py-3 hover:border-lineStrong transition-colors"
+                    >
+                      <div>
+                        <div className="font-medium text-ink text-sm">{l.studentName}</div>
+                        <div className="text-xs text-inkSubtle font-mono">
+                          {l.studentInstrument ? `${l.studentInstrument} · ` : ""}{l.durationMinutes} min
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono text-ink">{formatTime(new Date(l.startsAt))}</div>
+                        <div className="text-xs text-inkSubtle">{dayLabel}</div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Get started checklist */}
           {!allDone && (
             <div className="bg-surface rounded-lg border border-line p-6 max-w-lg">
               <h2 className="text-sm font-semibold text-ink mb-4">Get started</h2>
@@ -121,5 +207,29 @@ export default async function DashboardPage() {
         </>
       )}
     </div>
+  );
+}
+
+function StatCard({
+  value,
+  label,
+  href,
+  muted,
+}: {
+  value: number | string;
+  label: string;
+  href: string;
+  muted?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="bg-surface rounded-lg border border-line p-5 hover:border-lineStrong transition-colors"
+    >
+      <div className={`text-3xl font-bold font-mono ${muted ? "text-inkSubtle" : "text-ink"}`}>
+        {value}
+      </div>
+      <div className="text-sm text-inkMuted mt-1">{label}</div>
+    </Link>
   );
 }

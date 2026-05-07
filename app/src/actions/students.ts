@@ -22,8 +22,8 @@ async function getStudio() {
 export async function createStudent(data: {
   name: string;
   instrument?: string;
-  durationMinutes: number;
-  rateDollars: number;
+  parentName?: string;
+  parentEmail?: string;
 }): Promise<CreateStudentResult> {
   const studio = await getStudio();
 
@@ -31,15 +31,30 @@ export async function createStudent(data: {
   if (!name) return { success: false, error: "Name is required" };
 
   const instrument = data.instrument?.trim() || null;
-  const rateCents = Math.round((data.rateDollars || 40) * 100);
+  const parentEmail = data.parentEmail?.trim() || null;
+  const parentName = data.parentName?.trim() || null;
 
-  await db.insert(students).values({
+  const [student] = await db.insert(students).values({
     studioId: studio.id,
     name,
     instrument,
-    defaultLessonMinutes: data.durationMinutes || 30,
-    defaultRateCents: rateCents,
-  });
+  }).returning({ id: students.id });
+
+  if (parentEmail && student) {
+    const [parent] = await db
+      .insert(parentContacts)
+      .values({ studioId: studio.id, email: parentEmail, name: parentName })
+      .onConflictDoUpdate({
+        target: [parentContacts.studioId, parentContacts.email],
+        set: { name: parentName },
+      })
+      .returning({ id: parentContacts.id });
+
+    await db
+      .insert(studentParents)
+      .values({ studentId: student.id, parentId: parent.id, isPrimary: true })
+      .onConflictDoNothing();
+  }
 
   revalidatePath("/dashboard/students");
   return { success: true, name };
