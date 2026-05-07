@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
 import { students, lessons, lessonTemplates, parentContacts, invoices } from "@/db/schema";
-import { eq, and, gte, lt, count, isNull, sum, or, asc } from "drizzle-orm";
+import { eq, and, gte, lt, count, isNull, or, asc } from "drizzle-orm";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 

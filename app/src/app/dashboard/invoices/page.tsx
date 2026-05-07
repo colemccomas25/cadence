@@ -246,21 +246,23 @@ export default async function InvoicesPage({
 
 function GenerateForm({ ym, inline }: { ym: string; inline?: boolean }) {
   return (
-    <form action={generateInvoices} className={inline ? "flex gap-2" : "flex gap-2"}>
+    <form action={generateInvoices} className={inline ? "flex gap-2" : "space-y-3"}>
       {!inline && (
-        <p className="text-xs text-inkMuted mb-3">
+        <p className="text-xs text-inkMuted">
           Creates one invoice per parent from all held lessons in the selected month.
         </p>
       )}
-      <input
-        name="yearMonth"
-        type="month"
-        defaultValue={ym}
-        className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-      />
-      <SubmitButton className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
-        Generate
-      </SubmitButton>
+      <div className="flex gap-2">
+        <input
+          name="yearMonth"
+          type="month"
+          defaultValue={ym}
+          className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+        />
+        <SubmitButton className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accentHover transition-colors">
+          Generate
+        </SubmitButton>
+      </div>
     </form>
   );
 }
