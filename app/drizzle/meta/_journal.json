@@ -15,6 +15,20 @@
       "when": 1777840360990,
       "tag": "0001_nebulous_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778199378431,
+      "tag": "0002_add_onboarding_completed_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778202448165,
+      "tag": "0003_add_stripe_connect",
+      "breakpoints": true
     }
   ]
 }

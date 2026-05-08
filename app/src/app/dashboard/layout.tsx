@@ -1,6 +1,7 @@
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
+import { isAdminEmail } from "@/lib/admin";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
@@ -15,6 +16,10 @@ export default async function DashboardLayout({
   const user = session.user as { id?: string; email?: string | null; name?: string | null };
   const studio = await getOrCreateStudio(user.id, user.email ?? undefined, user.name);
 
+  if (!studio.onboardingCompletedAt) redirect("/onboarding");
+
+  const showAdmin = isAdminEmail(session.user.email);
+
   return (
     <div className="flex min-h-screen bg-paper">
       <aside className="hidden md:flex w-60 bg-surface border-r border-line flex-col fixed inset-y-0 z-10">
@@ -25,7 +30,7 @@ export default async function DashboardLayout({
           <div className="text-xs text-inkSubtle mt-0.5 truncate">{studio.name}</div>
         </div>
 
-        <SidebarNav />
+        <SidebarNav showAdmin={showAdmin} />
 
         <div className="px-4 py-4 border-t border-line">
           <div className="text-xs text-inkSubtle truncate mb-2">{session.user.email}</div>

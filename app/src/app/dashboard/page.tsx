@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
 import { students, lessons, lessonTemplates, parentContacts, invoices } from "@/db/schema";
-import { eq, and, gte, lt, count, isNull, or, ne, asc } from "drizzle-orm";
+import { eq, and, gte, lt, count, isNull, ne, asc } from "drizzle-orm";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
+import { studentUsage, PLAN_LABELS } from "@/lib/plan";
 
 function formatTime(d: Date) {
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -117,6 +118,16 @@ export default async function DashboardPage() {
   ];
   const allDone = steps.every((s) => s.done);
 
+  const needsConnect =
+    studio.plan !== "free" &&
+    (!studio.stripeConnectAccountId || !studio.stripeConnectChargesEnabled);
+
+  // Plan usage: surface a soft warning when nearing the limit, hard banner at it.
+  const usage = studentUsage(studio.plan, studentCount);
+  const showLimitBanner =
+    usage.limit !== null && (usage.atLimit || (usage.remaining !== null && usage.remaining <= 1));
+  const planLabel = PLAN_LABELS[studio.plan];
+
   return (
     <div className="px-4 py-6 md:px-12 md:py-8">
       <h1 className="text-3xl font-display tracking-tight text-ink mb-1">
@@ -125,6 +136,49 @@ export default async function DashboardPage() {
       <p className="text-inkSubtle text-sm mb-8">
         {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
       </p>
+
+      {needsConnect && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 max-w-2xl flex items-center justify-between gap-4">
+          <div className="text-sm">
+            <span className="font-medium text-ink">Connect your bank to collect payments.</span>
+            <span className="text-inkSubtle"> Until you finish Stripe setup, parents can&apos;t pay invoices online.</span>
+          </div>
+          <Link
+            href="/dashboard/settings/payments"
+            className="text-sm font-semibold text-accent hover:underline whitespace-nowrap"
+          >
+            Set up payments
+          </Link>
+        </div>
+      )}
+
+      {showLimitBanner && (
+        <div
+          className={`mb-6 rounded-lg border px-4 py-3 max-w-2xl flex items-center justify-between gap-4 ${
+            usage.atLimit
+              ? "border-amber-300 bg-amber-50"
+              : "border-line bg-surface"
+          }`}
+        >
+          <div className="text-sm">
+            <span className="font-medium text-ink">
+              {usage.used} / {usage.limit} students
+            </span>
+            <span className="text-inkSubtle">
+              {" "}on the {planLabel} plan.
+              {usage.atLimit
+                ? " You've hit your limit."
+                : ` ${usage.remaining} left.`}
+            </span>
+          </div>
+          <Link
+            href="/dashboard/upgrade"
+            className="text-sm font-semibold text-accent hover:underline whitespace-nowrap"
+          >
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       {studentCount === 0 ? (
         <EmptyState
@@ -181,7 +235,7 @@ export default async function DashboardPage() {
                       <div>
                         <div className="font-medium text-ink text-sm">{l.studentName}</div>
                         <div className="text-xs text-inkSubtle font-mono">
-                          {l.studentInstrument ? `${l.studentInstrument} · ` : ""}{l.durationMinutes} min
+                          {l.studentInstrument ? `${l.studentInstrument} \u00b7 ` : ""}{l.durationMinutes} min
                         </div>
                       </div>
                       <div className="text-right">
@@ -205,13 +259,13 @@ export default async function DashboardPage() {
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-semibold flex-shrink-0 ${
                       step.done ? "bg-accentSoft text-accent" : "bg-muted text-inkSubtle"
                     }`}>
-                      {step.done ? "✓" : i + 1}
+                      {step.done ? "\u2713" : i + 1}
                     </div>
                     {step.done ? (
                       <span className="text-sm text-inkSubtle line-through">{step.label}</span>
                     ) : (
                       <Link href={step.href} className="text-sm text-ink hover:text-accent font-medium">
-                        {step.label} →
+                        {step.label}
                       </Link>
                     )}
                   </li>

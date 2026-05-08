@@ -65,7 +65,12 @@ export const studios = pgTable(
     plan: planEnum("plan").notNull().default("free"),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
+    stripeConnectAccountId: text("stripe_connect_account_id"),
+    stripeConnectChargesEnabled: boolean("stripe_connect_charges_enabled").notNull().default(false),
+    stripeConnectPayoutsEnabled: boolean("stripe_connect_payouts_enabled").notNull().default(false),
+    stripeConnectDetailsSubmitted: boolean("stripe_connect_details_submitted").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
   },
   (t) => ({
     ownerIdx: uniqueIndex("studios_owner_idx").on(t.ownerId),

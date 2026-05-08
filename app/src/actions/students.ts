@@ -3,14 +3,27 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { students, studios, parentContacts, studentParents } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { canAddStudent, studentLimitMessage, STUDENT_LIMITS } from "@/lib/plan";
 
 export type CreateStudentResult =
   | { success: true; name: string }
   | { success: false; error: string };
 import { getOrCreateStudioUncached } from "@/lib/studio";
+
+/**
+ * Count active (non-archived) students for a studio.
+ * Used by the plan-gating check in createStudent + importStudentsCsv.
+ */
+async function activeStudentCount(studioId: string): Promise<number> {
+  const [{ value }] = await db
+    .select({ value: count() })
+    .from(students)
+    .where(and(eq(students.studioId, studioId), isNull(students.archivedAt)));
+  return value;
+}
 
 async function getStudio() {
   const session = await auth();
@@ -29,6 +42,12 @@ export async function createStudent(data: {
 
   const name = data.name.trim();
   if (!name) return { success: false, error: "Name is required" };
+
+  // Plan-gating: block once the studio has hit its active-student limit.
+  const used = await activeStudentCount(studio.id);
+  if (!canAddStudent(studio, used)) {
+    return { success: false, error: studentLimitMessage(studio.plan) };
+  }
 
   const instrument = data.instrument?.trim() || null;
   const parentEmail = data.parentEmail?.trim() || null;
@@ -106,11 +125,19 @@ export async function importStudentsCsv(formData: FormData) {
     return i >= 0 ? row[i]?.trim() ?? "" : "";
   };
 
+  // Plan-gating: cap imports at the studio's remaining headroom.
+  const limit = STUDENT_LIMITS[studio.plan];
+  let remaining = limit === null ? Infinity : Math.max(0, limit - (await activeStudentCount(studio.id)));
   let imported = 0;
+  let skippedDueToLimit = 0;
   for (const line of lines.slice(1)) {
     const row = line.split(",");
     const name = col(row, "name");
     if (!name) continue;
+    if (remaining <= 0) {
+      skippedDueToLimit++;
+      continue;
+    }
 
     const instrument = col(row, "instrument") || null;
     const durationMinutes = parseInt(col(row, "duration_minutes"), 10) || 30;
@@ -137,10 +164,14 @@ export async function importStudentsCsv(formData: FormData) {
     }
 
     imported++;
+    remaining--;
   }
 
   revalidatePath("/dashboard/students");
-  redirect(`/dashboard/students?imported=${imported}`);
+  const qs = skippedDueToLimit > 0
+    ? `?imported=${imported}&skipped=${skippedDueToLimit}`
+    : `?imported=${imported}`;
+  redirect(`/dashboard/students${qs}`);
 }
 
 export async function unarchiveStudent(studentId: string) {

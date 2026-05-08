@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { invoices, parentContacts, studios } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getOrCreateStudioUncached } from "@/lib/studio";
+import { canUseFeature } from "@/lib/plan";
 import { Resend } from "resend";
 
 export async function GET(req: Request) {
@@ -17,6 +18,19 @@ export async function GET(req: Request) {
 
   const user = session.user as { id?: string; email?: string | null; name?: string | null };
   const studio = await getOrCreateStudioUncached(user.id, user.email ?? undefined, user.name);
+
+  // Plan gate: Stripe invoicing is a Solo+ feature. Free users should be
+  // routed to manual invoice handling (CSV export / mark-paid).
+  if (!canUseFeature(studio, "stripe_invoicing")) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    return NextResponse.redirect(`${appUrl}/dashboard/upgrade?from=invoice`);
+  }
+
+  // Connect gate: teacher must have a charges-enabled Connect account.
+  if (!studio.stripeConnectAccountId || !studio.stripeConnectChargesEnabled) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    return NextResponse.redirect(`${appUrl}/dashboard/settings/payments?from=invoice`);
+  }
 
   const [invoice] = await db
     .select()
@@ -63,6 +77,13 @@ export async function GET(req: Request) {
     success_url: `${appUrl}/dashboard/invoices?paid=1`,
     cancel_url: `${appUrl}/dashboard/invoices`,
     metadata: { type: "invoice", invoiceId: invoice.id },
+    payment_intent_data: {
+      application_fee_amount: 0,
+      transfer_data: {
+        destination: studio.stripeConnectAccountId!,
+      },
+      on_behalf_of: studio.stripeConnectAccountId!,
+    },
   });
 
   const resend = new Resend(process.env.RESEND_API_KEY);

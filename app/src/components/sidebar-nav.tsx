@@ -9,6 +9,7 @@ import {
   Receipt,
   Mail,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 
 const NAV = [
@@ -20,7 +21,7 @@ const NAV = [
   { href: "/dashboard/upgrade",  label: "Upgrade",    exact: false, icon: Sparkles },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -42,6 +43,15 @@ export function SidebarNav() {
           </Link>
         );
       })}
+      {showAdmin && (
+        <Link
+          href="/admin"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-amber-600 hover:bg-muted transition-colors"
+        >
+          <ShieldAlert size={16} className="flex-shrink-0" />
+          Admin
+        </Link>
+      )}
     </nav>
   );
 }
