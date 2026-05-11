@@ -109,6 +109,10 @@ export const parentContacts = pgTable(
     email: text("email").notNull(),
     name: text("name"),
     phone: text("phone"),
+    // Auto-charge (Studio tier) — doc 15
+    stripePaymentMethodId: text("stripe_payment_method_id"),
+    autoChargeEnabled: boolean("auto_charge_enabled").notNull().default(false),
+    autoChargeAuthorizedAt: timestamp("auto_charge_authorized_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -135,6 +139,30 @@ export const studentParents = pgTable(
   }),
 );
 
+// --- parent portal auth (doc 16) ---
+export const parentSessions = pgTable(
+  "parent_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    parentEmail: text("parent_email").notNull(),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    emailIdx: index("parent_sessions_email_idx").on(t.parentEmail),
+  }),
+);
+
+export const parentMagicLinks = pgTable("parent_magic_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  parentEmail: text("parent_email").notNull(),
+  token: text("token").notNull().unique(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // --- lesson templates (recurring) ---
 export const lessonTemplates = pgTable("lesson_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -152,6 +180,7 @@ export const lessonTemplates = pgTable("lesson_templates", {
   startsOn: timestamp("starts_on", { withTimezone: true, mode: "date" }).notNull(),
   endsOn: timestamp("ends_on", { withTimezone: true, mode: "date" }),
   active: boolean("active").notNull().default(true),
+  templateGroupId: uuid("template_group_id"), // shared UUID across students in a group template (doc 18)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -175,11 +204,13 @@ export const lessons = pgTable(
     status: lessonStatusEnum("status").notNull().default("scheduled"),
     notes: text("notes"),
     invoiceId: uuid("invoice_id"),
+    lessonGroupId: uuid("lesson_group_id"), // shared UUID across per-student rows in a group lesson (doc 18)
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     studioStartsIdx: index("lessons_studio_starts_idx").on(t.studioId, t.startsAt),
     studentStartsIdx: index("lessons_student_starts_idx").on(t.studentId, t.startsAt),
+    groupIdx: index("lessons_group_idx").on(t.lessonGroupId),
   }),
 );
 
@@ -210,6 +241,25 @@ export const invoices = pgTable(
   }),
 );
 
+// --- practice logs (doc 17, Studio tier only) ---
+export const practiceLogs = pgTable(
+  "practice_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    date: timestamp("date", { withTimezone: true, mode: "date" }).notNull(),
+    minutes: integer("minutes").notNull(),
+    note: text("note"),
+    submittedByEmail: text("submitted_by_email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    studentDateIdx: uniqueIndex("practice_logs_student_date_idx").on(t.studentId, t.date),
+  }),
+);
+
 // --- email logs ---
 export const emailLogs = pgTable(
   "email_logs",
@@ -234,3 +284,5 @@ export type Student = typeof students.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type EmailLog = typeof emailLogs.$inferSelect;
+export type PracticeLog = typeof practiceLogs.$inferSelect;
+export type ParentSession = typeof parentSessions.$inferSelect;

@@ -9,6 +9,7 @@ import { createLesson } from "@/actions/lessons";
 import { EmptyState } from "@/components/empty-state";
 import { StatusControls } from "@/components/status-controls";
 import { SubmitButton } from "@/components/submit-button";
+import { canUseFeature } from "@/lib/plan";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,12 +47,35 @@ type LessonRow = {
   notes: string | null;
   studentName: string;
   studentInstrument: string | null;
+  lessonGroupId: string | null;
 };
+
+function collapseGroups(rows: LessonRow[]): LessonRow[] {
+  const result: LessonRow[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!row.lessonGroupId) {
+      result.push(row);
+      continue;
+    }
+    const key = `${row.lessonGroupId}:${new Date(row.startsAt).getTime()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const siblings = rows.filter(
+      (r) =>
+        r.lessonGroupId === row.lessonGroupId &&
+        new Date(r.startsAt).getTime() === new Date(row.startsAt).getTime(),
+    );
+    result.push({ ...row, studentName: siblings.map((s) => s.studentName).join(", ") });
+  }
+  return result;
+}
 
 // ── lesson card ───────────────────────────────────────────────────────────────
 
 function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: boolean }) {
   const meta = STATUS_META[lesson.status] ?? STATUS_META.scheduled;
+  const isGroup = !!lesson.lessonGroupId;
   return (
     <div className="bg-surface rounded-md border border-line overflow-hidden hover:border-lineStrong transition-colors">
       <Link href={`/dashboard/calendar/lessons/${lesson.id}/edit`} className="flex">
@@ -63,7 +87,10 @@ function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: 
           <div className={`font-medium text-ink leading-tight ${compact ? "text-sm truncate" : "text-base"}`}>
             {lesson.studentName}
           </div>
-          {!compact && lesson.studentInstrument && (
+          {isGroup && !compact && (
+            <div className="text-[10px] text-violet-600 font-medium mt-0.5">Group lesson</div>
+          )}
+          {!compact && !isGroup && lesson.studentInstrument && (
             <div className="text-xs text-inkSubtle">{lesson.studentInstrument}</div>
           )}
           {!compact && (
@@ -74,10 +101,13 @@ function LessonCard({ lesson, compact = false }: { lesson: LessonRow; compact?: 
           {!compact && lesson.notes && (
             <div className="text-xs text-inkMuted italic mt-1">{lesson.notes}</div>
           )}
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex items-center gap-1.5">
             <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
               {meta.label}
             </span>
+            {isGroup && compact && (
+              <span className="text-[10px] text-violet-600 font-medium">Group</span>
+            )}
           </div>
         </div>
       </Link>
@@ -104,6 +134,7 @@ export default async function CalendarPage({
   anchor.setHours(0, 0, 0, 0);
 
   const todayStr = toDateStr(new Date());
+  const canGroup = canUseFeature(studio, "group_lessons");
   const anchorStr = toDateStr(anchor);
 
   const activeStudents = await db
@@ -124,7 +155,7 @@ export default async function CalendarPage({
     const prevDay = new Date(anchor);
     prevDay.setDate(anchor.getDate() - 1);
 
-    const dayLessons: LessonRow[] = await db
+    const dayLessonsRaw: LessonRow[] = await db
       .select({
         id: lessons.id,
         startsAt: lessons.startsAt,
@@ -134,11 +165,13 @@ export default async function CalendarPage({
         notes: lessons.notes,
         studentName: students.name,
         studentInstrument: students.instrument,
+        lessonGroupId: lessons.lessonGroupId,
       })
       .from(lessons)
       .innerJoin(students, eq(lessons.studentId, students.id))
       .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, anchor), lt(lessons.startsAt, nextDay)))
       .orderBy(asc(lessons.startsAt));
+    const dayLessons = collapseGroups(dayLessonsRaw);
 
     const displayDate = anchor.toLocaleDateString("en-US", {
       weekday: "long", month: "long", day: "numeric",
@@ -146,7 +179,7 @@ export default async function CalendarPage({
 
     return (
       <div className="px-4 pt-6 pb-14 md:px-12 md:py-8">
-        <ViewHeader view="day" anchor={anchorStr} todayStr={todayStr} />
+        <ViewHeader view="day" anchor={anchorStr} todayStr={todayStr} canGroup={canGroup} />
 
         <div className="flex items-center gap-2 mb-2">
           <Link href={`/dashboard/calendar?view=day&date=${toDateStr(prevDay)}`}
@@ -203,7 +236,7 @@ export default async function CalendarPage({
   const nextWeekStart = new Date(weekStart);
   nextWeekStart.setDate(weekStart.getDate() + 7);
 
-  const weekLessons: LessonRow[] = await db
+  const weekLessonsRaw: LessonRow[] = await db
     .select({
       id: lessons.id,
       startsAt: lessons.startsAt,
@@ -213,11 +246,13 @@ export default async function CalendarPage({
       notes: lessons.notes,
       studentName: students.name,
       studentInstrument: students.instrument,
+      lessonGroupId: lessons.lessonGroupId,
     })
     .from(lessons)
     .innerJoin(students, eq(lessons.studentId, students.id))
     .where(and(eq(lessons.studioId, studio.id), gte(lessons.startsAt, weekStart), lt(lessons.startsAt, weekEnd)))
     .orderBy(asc(lessons.startsAt));
+  const weekLessons = collapseGroups(weekLessonsRaw);
 
   const byDay: LessonRow[][] = Array.from({ length: 7 }, () => []);
   for (const lesson of weekLessons) {
@@ -229,7 +264,7 @@ export default async function CalendarPage({
 
   return (
     <div className="px-4 py-6 md:px-12 md:py-8">
-      <ViewHeader view="week" anchor={anchorStr} todayStr={todayStr} />
+      <ViewHeader view="week" anchor={anchorStr} todayStr={todayStr} canGroup={canGroup} />
 
       <div className="flex items-center gap-2 mb-6">
         <Link href={`/dashboard/calendar?view=week&date=${toDateStr(prevWeekStart)}`}
@@ -324,11 +359,21 @@ export default async function CalendarPage({
 
 // ── shared sub-components ─────────────────────────────────────────────────────
 
-function ViewHeader({ view, anchor, todayStr }: { view: string; anchor: string; todayStr: string }) {
+function ViewHeader({ view, anchor, todayStr, canGroup }: { view: string; anchor: string; todayStr: string; canGroup?: boolean }) {
   const dateParam = anchor === todayStr ? "" : `&date=${anchor}`;
   return (
     <div className="flex items-center justify-between mb-4">
-      <h1 className="text-3xl font-display tracking-tight text-ink">Calendar</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-3xl font-display tracking-tight text-ink">Calendar</h1>
+        {canGroup && (
+          <Link
+            href="/dashboard/calendar/group/new"
+            className="text-xs text-inkSubtle border border-line rounded px-2 py-1 hover:bg-muted transition-colors hidden md:inline-flex items-center gap-1"
+          >
+            + Group lesson
+          </Link>
+        )}
+      </div>
       <div className="flex rounded-md border border-line overflow-hidden text-sm">
         <Link
           href={`/dashboard/calendar?view=day${dateParam}`}

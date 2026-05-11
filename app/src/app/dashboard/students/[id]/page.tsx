@@ -2,14 +2,17 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getOrCreateStudio } from "@/lib/studio";
 import { db } from "@/db";
-import { students, lessonTemplates, studentParents, parentContacts } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { students, lessonTemplates, studentParents, parentContacts, practiceLogs } from "@/db/schema";
+import { eq, and, gte, desc } from "drizzle-orm";
 import Link from "next/link";
 import { createTemplate, deactivateTemplate } from "@/actions/templates";
 import { addParent, removeParent } from "@/actions/parents";
 import { SubmitButton } from "@/components/submit-button";
+import { canUseFeature } from "@/lib/plan";
+import { ParentAutoChargeControls } from "./parent-auto-charge-controls";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
 function minutesToTime(minutes: number) {
   const h = Math.floor(minutes / 60);
@@ -44,13 +47,38 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     .orderBy(lessonTemplates.dayOfWeek);
 
   const parents = await db
-    .select({ id: parentContacts.id, name: parentContacts.name, email: parentContacts.email, isPrimary: studentParents.isPrimary })
+    .select({
+      id: parentContacts.id,
+      name: parentContacts.name,
+      email: parentContacts.email,
+      isPrimary: studentParents.isPrimary,
+      stripePaymentMethodId: parentContacts.stripePaymentMethodId,
+      autoChargeEnabled: parentContacts.autoChargeEnabled,
+    })
     .from(studentParents)
     .innerJoin(parentContacts, eq(parentContacts.id, studentParents.parentId))
     .where(eq(studentParents.studentId, student.id))
     .orderBy(studentParents.isPrimary);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const canAutoCharge = canUseFeature(studio, "auto_charge");
+  const canPracticeLog = canUseFeature(studio, "practice_log");
+
+  const practiceLogRows = canPracticeLog
+    ? await db
+        .select()
+        .from(practiceLogs)
+        .where(
+          and(
+            eq(practiceLogs.studentId, student.id),
+            gte(practiceLogs.date, (() => { const d = new Date(today); d.setDate(d.getDate() - 83); return d; })()),
+          ),
+        )
+        .orderBy(desc(practiceLogs.date))
+    : [];
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-2xl">
@@ -110,17 +138,26 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
         ) : (
           <div className="space-y-2 mb-4">
             {parents.map((p) => (
-              <div key={p.id} className="bg-surface rounded-md border border-line px-4 py-3 flex items-center justify-between">
-                <div>
-                  <span className="font-medium text-ink">{p.name ?? p.email}</span>
-                  {p.name && <span className="text-inkSubtle text-sm ml-2">{p.email}</span>}
-                  {p.isPrimary && (
-                    <span className="ml-2 text-xs bg-accentSoft text-accent px-1.5 py-0.5 rounded">Primary</span>
-                  )}
+              <div key={p.id} className="bg-surface rounded-md border border-line px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-ink">{p.name ?? p.email}</span>
+                    {p.name && <span className="text-inkSubtle text-sm ml-2">{p.email}</span>}
+                    {p.isPrimary && (
+                      <span className="ml-2 text-xs bg-accentSoft text-accent px-1.5 py-0.5 rounded">Primary</span>
+                    )}
+                  </div>
+                  <form action={removeParent.bind(null, student.id, p.id)}>
+                    <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">Remove</button>
+                  </form>
                 </div>
-                <form action={removeParent.bind(null, student.id, p.id)}>
-                  <button type="submit" className="text-xs text-inkSubtle hover:text-danger transition-colors">Remove</button>
-                </form>
+                {canAutoCharge && (
+                  <ParentAutoChargeControls
+                    parentId={p.id}
+                    hasCard={!!p.stripePaymentMethodId}
+                    autoChargeEnabled={p.autoChargeEnabled}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -148,6 +185,16 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           </div>
         </form>
       </section>
+
+      {/* Practice log heatmap */}
+      {canPracticeLog && (
+        <section className="mb-8">
+          <h2 className="text-xs font-semibold text-inkSubtle uppercase tracking-wider mb-3">
+            Practice log · last 12 weeks
+          </h2>
+          <PracticeHeatmap logs={practiceLogRows} today={today} />
+        </section>
+      )}
 
       {/* Add recurring lesson form */}
       <section>
@@ -226,6 +273,74 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           </SubmitButton>
         </form>
       </section>
+    </div>
+  );
+}
+
+// ── practice heatmap ──────────────────────────────────────────────────────────
+
+import type { PracticeLog } from "@/db/schema";
+
+function cellColor(mins: number): string {
+  if (mins === 0) return "bg-stone-100";
+  if (mins < 30) return "bg-emerald-100";
+  if (mins < 60) return "bg-emerald-300";
+  if (mins < 90) return "bg-emerald-500";
+  return "bg-emerald-700";
+}
+
+function PracticeHeatmap({ logs, today }: { logs: PracticeLog[]; today: Date }) {
+  const logMap = new Map(
+    logs.map((l) => [new Date(l.date).toISOString().split("T")[0], l.minutes]),
+  );
+
+  // Start on the Monday 11 weeks before this week's Monday
+  const monday = new Date(today);
+  const dow = today.getDay();
+  monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
+  const start = new Date(monday);
+  start.setDate(monday.getDate() - 77); // 11 × 7
+
+  const weeks: Date[][] = Array.from({ length: 12 }, (_, wi) =>
+    Array.from({ length: 7 }, (_, di) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + wi * 7 + di);
+      return d;
+    }),
+  );
+
+  const totalMins = logs.reduce((s, l) => s + l.minutes, 0);
+
+  return (
+    <div>
+      <div className="flex gap-0.5">
+        <div className="flex flex-col gap-0.5 mr-1 justify-around">
+          {DAY_LABELS.map((d, i) => (
+            <span key={i} className="text-[9px] text-inkSubtle w-3 text-right leading-none">
+              {i % 2 === 0 ? d : ""}
+            </span>
+          ))}
+        </div>
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-0.5">
+            {week.map((d, di) => {
+              const key = d.toISOString().split("T")[0];
+              const mins = logMap.get(key) ?? 0;
+              const isFuture = d > today;
+              return (
+                <div
+                  key={di}
+                  className={`h-3 w-3 rounded-sm ${isFuture ? "bg-stone-50" : cellColor(mins)}`}
+                  title={isFuture ? key : `${key}: ${mins} min`}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-inkSubtle mt-2 font-mono">
+        {totalMins} min logged over 12 weeks
+      </p>
     </div>
   );
 }
